@@ -1,0 +1,4 @@
+
+
+class ClickHouseError(Exception):
+    pass
