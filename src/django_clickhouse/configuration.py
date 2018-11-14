@@ -14,7 +14,9 @@ DEFAULTS = {
     'DATABASES': {},
     'SYNC_BATCH_SIZE': 10000,
     'SYNC_STORAGE': 'django_clickhouse.storage.DBStorage',
-    'SYNC_DELAY': 5
+    'SYNC_DELAY': 5,
+    'REDIS_CONFIG': None,
+    'STATSD_PREFIX': 'clickhouse'
 }
 
 

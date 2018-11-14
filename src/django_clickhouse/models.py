@@ -1,8 +1,8 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from django.db.models import QuerySet as DjangoQuerySet, Manager as DjangoManager, Model as DjangoModel
 
-
-class ClickHouseDjangoModelQuerySet(DjangoBaseQuerySet):
+class ClickHouseDjangoModelQuerySet(DjangoQuerySet):
     """
     Переопределяет update, чтобы он сгенерировал данные для обновления ClickHouse
     """
@@ -36,7 +36,7 @@ class ClickHouseDjangoModelQuerySet(DjangoBaseQuerySet):
         return result
 
 
-class ClickHouseDjangoModelManager(DjangoBaseManager):
+class ClickHouseDjangoModelManager(DjangoManager):
     def get_queryset(self):
         """
         Инициализирует кастомный QuerySet
@@ -51,7 +51,7 @@ class ClickHouseDjangoModelManager(DjangoBaseManager):
         return objs
 
 
-class ClickHouseDjangoModel(DjangoBaseModel):
+class ClickHouseDjangoModel(DjangoModel):
     """
     Определяет базовую абстрактную модель, синхронизируемую с кликхаусом
     """

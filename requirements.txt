@@ -5,3 +5,4 @@ typing
 psycopg2
 infi.clickhouse-orm
 celery
+statsd

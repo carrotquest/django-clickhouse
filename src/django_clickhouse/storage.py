@@ -6,59 +6,159 @@ This data is periodically fetched from storage and applied to ClickHouse tables.
 Important:
 Storage should be able to restore current importing batch, if something goes wrong.
 """
+import datetime
+from typing import Any, Optional, List, Tuple, Iterable
+
+from .exceptions import ConfigurationError
+from .configuration import config
 
 
 class Storage:
+    """
+    Base abstract storage class, defining interface for all storages.
+    The storage work algorithm:
+    1) pre_sync()
+    2) get_import_batch(). If batch is present go to 5)
+    3) If batch is None, call get_operations()
+    4) Transform operations to batch and call write_import_batch()
+    5) Import batch to ClickHouse
+    6) call post_sync(). If succeeded, it should remove the batch and it's data from sync_queue.
 
-    def pre_sync(self):  # type: () -> None
+    If anything goes wrong before write_import_batch(), it is guaranteed that ClickHouse import hasn't been started yet,
+    And we can repeat the procedure from the beginning.
+    If anything goes wrong after write_import_batch(), we don't know it the part has been imported to ClickHouse.
+    But ClickHouse is idempotent to duplicate inserts. So we can insert one batch twice correctly.
+    """
+
+    def pre_sync(self, import_key, **kwargs):  # type: (str, **dict) -> None
         """
         This method is called before import process starts
+        :param import_key: A key, returned by ClickHouseModel.get_import_key() method
+        :param kwargs: Storage dependant arguments
         :return: None
         """
         pass
 
-    def post_sync(self, success):  # type: (bool) -> None
+    def post_sync(self, import_key, **kwargs):  # type: (str, **dict) -> None
         """
         This method is called after import process has finished.
-        :param success: A flag, if process ended with success or error
+        :param import_key: A key, returned by ClickHouseModel.get_import_key() method
+        :param kwargs: Storage dependant arguments
         :return: None
         """
         pass
 
-    def get_sync_ids(self, **kwargs):  # type(**dict) -> Tuple[Set[Any], Set[Any], Set[Any]]
+    def get_import_batch(self, import_key, **kwargs):
+        # type: (str, **dict) -> Optional[Tuple[str]]
         """
-        Must return 3 sets of ids: to insert, update and delete records.
-        Method should be error safe - if something goes wrong, import data should not be lost
+        Returns a saved batch for ClickHouse import or None, if it was not found
+        :param import_key: A key, returned by ClickHouseModel.get_import_key() method
         :param kwargs: Storage dependant arguments
-        :return: 3 sets of primary keys
+        :return: None, if no batch has been formed. A tuple strings, saved in write_import_batch() method.
         """
         raise NotImplemented()
 
+    def write_import_batch(self, import_key, batch, **kwargs):
+        # type: (str, Iterable[str], **dict) -> None
+        """
+        Saves batch for ClickHouse import
+        :param import_key: A key, returned by ClickHouseModel.get_import_key() method
+        :param batch: An iterable of strings to save as a batch
+        :param kwargs: Storage dependant arguments
+        :return: None
+        """
+        raise NotImplemented()
+
+    def get_operations(self, import_key, count, **kwargs):
+        # type: (str, int, **dict) -> List[Tuple[str, str]]
+        """
+        Must return a list of operations on the model.
+        Method should be error safe - if something goes wrong, import data should not be lost.
+        :param import_key: A key, returned by ClickHouseModel.get_import_key() method
+        :param count: A batch size to get
+        :param kwargs: Storage dependant arguments
+        :return: A list of tuples (operation, pk) in incoming order.
+        """
+        raise NotImplemented()
+
+    def register_operation(self, import_key, operation, pk):  # type: (str, str, Any) -> None
+        """
+        Registers new incoming operation
+        :param import_key: A key, returned by ClickHouseModel.get_import_key() method
+        :param operation: One of insert, update, delete
+        :param pk: Primary key to find records in main database. Should be string-serializable with str() method.
+        :return: None
+        """
+        raise NotImplementedError()
+
+    def register_operation_wrapped(self, import_key, operation, pk):
+        # type: (str, str, Any)  -> None
+        """
+        This is a wrapper for register_operation method, checking main parameters.
+        This method should be called from inner functions.
+        :param import_key: A key, returned by ClickHouseModel.get_import_key() method
+        :param operation: One of insert, update, delete
+        :param pk: Primary key to find records in main database. Should be string-serializable with str() method.
+        :return: None
+        """
+        if operation not in {'insert', 'update', 'delete'}:
+            raise ValueError('operation must be one of [insert, update, delete]')
+
+        return self.register_operation(import_key, operation, pk)
+
 
 class RedisStorage(Storage):
+    """
+    Fast in-memory storage made on bases of redis and redis-py library.
+    Requires:
+        1) REDIS database
+        2) CLICKHOUSE_REDIS_CONFIG parameter defined. This should be a dict of kwargs for redis.StrictRedis(**kwargs).
+    """
+    REDIS_KEY_OPS_TEMPLATE = 'clickhouse_sync:operations:{import_key}'
+    REDIS_KEY_TS_TEMPLATE = 'clickhouse_sync:timstamp:{import_key}'
+    REDIS_KEY_BATCH_TEMPLATE = 'clickhouse_sync:batch:{import_key}'
 
     def __init__(self):
+        # Create redis library connection. If redis is not connected properly errors should be raised
+        if config.REDIS_CONFIG is None:
+            raise ConfigurationError('REDIS_CONFIG')
 
+        from redis import StrictRedis
+        self._redis = StrictRedis(**config.REDIS_CONFIG)
 
-    @classmethod
-    def get_sync_ids(cls, **kwargs):
-        # Шардинговый формат
-        key = 'clickhouse_sync:{using}:{table}:{operation}'.format(table=cls.django_model._meta.db_table,
-                                                                   operation='*', using=(using or 'default'))
+    def register_operation(self, import_key, operation, pk):
+        key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
 
-        # Множества id для вставки, обновления, удаления
-        insert_model_ids, update_model_ids, delete_model_ids = set(), set(), set()
+        # key, score, value
+        self._redis.zadd(key, datetime.datetime.now().timestamp(), '%s:%s' % (operation, str(pk)))
 
-        for key in settings.REDIS.keys(key):
-            model_ids = settings.REDIS.pipeline().smembers(key).delete(key).execute()[0]
-            model_ids = {int(mid) for mid in model_ids}
+    def get_operations(self, import_key, count, **kwargs):
+        ops_key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
+        ops, scores = zip(*self._redis.zrangebyscore(ops_key, '-inf', datetime.datetime.now().timestamp(),
+                                                   start=0, num=count, withscores=True))
 
-            op = key.decode('utf-8').split(':')[-1]
-            if op == 'INSERT':
-                insert_model_ids = set(model_ids)
-            elif op == 'UPDATE':
-                update_model_ids = set(model_ids)
-            else:  # if op == 'DELETE'
-                delete_model_ids = set(model_ids)
+        ts_key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
+        self._redis.set(ts_key, max(scores))
 
-        return insert_model_ids, update_model_ids, delete_model_ids
+        return list(tuple(op.decode().split(':')) for op in ops)
+
+    def get_import_batch(self, import_key, **kwargs):
+        batch_key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
+        return tuple(item.decode() for item in self._redis.lrange(batch_key, 0, -1))
+
+    def write_import_batch(self, import_key, batch, **kwargs):
+        batch_key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
+
+        # Elements are pushed to the head, so we need to invert batch in order to save correct order
+        self._redis.lpush(batch_key, *reversed(batch))
+
+    def post_sync(self, import_key, **kwargs):
+        ts_key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
+        ops_key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
+        batch_key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
+
+        score = float(self._redis.pipeline().get(ts_key))
+        self._redis.pipeline()\
+            .zremrangebyscore(ops_key, '-inf', score)\
+            .delete(batch_key)\
+            .execute()

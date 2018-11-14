@@ -38,8 +38,14 @@ LOGGING = {
 }
 
 INSTALLED_APPS = [
-    "src.django_clickhouse",
+    "src",
     "tests"
 ]
 
-CLICKHOUSE_BATCH_SIZE = 5000
+CLICKHOUSE_SYNC_BATCH_SIZE = 5000
+CLICKHOUSE_REDIS_CONFIG = {
+    'host': '127.0.0.1',
+    'port': 6379,
+    'db': 8,
+    'socket_timeout': 10
+}
