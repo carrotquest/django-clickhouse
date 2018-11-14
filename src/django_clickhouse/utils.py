@@ -1,3 +1,8 @@
+from typing import Union, Any
+
+import six
+from importlib import import_module
+
 
 def get_clickhouse_tz_offset():
     """
@@ -31,3 +36,22 @@ def format_datetime(dt, timezone_offset=0, day_end=False):
 
     # Если даты форматируются вручную, то сервер воспринимает их как локаль сервера.
     return (dt - datetime.timedelta(minutes=timezone_offset - get_clickhouse_tz_offset())).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def lazy_class_import(obj):  # type: (Union[str, Any]) -> Any
+    """
+    If string is given, imports object by given module path.
+    Otherwise returns the object
+    :param obj: A string class path or object to return
+    :return: Imported object
+    """
+    if isinstance(obj, six.string_types):
+        module_name, obj_name = obj.rsplit('.', 1)
+        module = import_module(module_name)
+
+        try:
+            return getattr(module, obj_name)
+        except AttributeError:
+            raise ImportError('Invalid import path `%s`' % obj)
+    else:
+        return obj

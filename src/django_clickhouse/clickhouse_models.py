@@ -312,7 +312,7 @@ class ClickHouseModel(InfiModel):
 
         if len(model_ids) > 0:
             if cls.sync_type == 'redis':
-                cls.django_model.register_clickhouse_operation('INSERT', *model_ids, database=(database or 'default'))
+                cls.django_model.register_clickhouse_operations('INSERT', *model_ids, database=(database or 'default'))
             else:  # if self.sync_type == 'postgres'
                 from utils.models import ClickHouseModelOperation
                 ClickHouseModelOperation.objects.bulk_update_or_create([
@@ -707,7 +707,7 @@ class ClickHouseCollapseModel(ClickHouseModel):
 
         if len(model_ids) > 0:
             if cls.sync_type == 'redis':
-                cls.django_model.register_clickhouse_operation('UPDATE', *list(model_ids), database=database)
+                cls.django_model.register_clickhouse_operations('UPDATE', *list(model_ids), database=database)
             else:  # if self.sync_type == 'postgres'
                 from utils.models import ClickHouseModelOperation
                 ClickHouseModelOperation.objects.bulk_update_or_create([

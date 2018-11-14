@@ -7,6 +7,7 @@ Important:
 Storage should be able to restore current importing batch, if something goes wrong.
 """
 import datetime
+from itertools import chain
 from typing import Any, Optional, List, Tuple, Iterable
 
 from .exceptions import ConfigurationError
@@ -81,7 +82,7 @@ class Storage:
         """
         raise NotImplemented()
 
-    def register_operation(self, import_key, operation, pk):  # type: (str, str, Any) -> None
+    def register_operations(self, import_key, operation, *pks):  # type: (str, str, *Iterable[Any]) -> None
         """
         Registers new incoming operation
         :param import_key: A key, returned by ClickHouseModel.get_import_key() method
@@ -91,8 +92,8 @@ class Storage:
         """
         raise NotImplementedError()
 
-    def register_operation_wrapped(self, import_key, operation, pk):
-        # type: (str, str, Any)  -> None
+    def register_operations_wrapped(self, import_key, operation, *pks):
+        # type: (str, str, *Iterable[Any])  -> None
         """
         This is a wrapper for register_operation method, checking main parameters.
         This method should be called from inner functions.
@@ -104,7 +105,7 @@ class Storage:
         if operation not in {'insert', 'update', 'delete'}:
             raise ValueError('operation must be one of [insert, update, delete]')
 
-        return self.register_operation(import_key, operation, pk)
+        return self.register_operations(import_key, operation, *pks)
 
 
 class RedisStorage(Storage):
@@ -126,12 +127,14 @@ class RedisStorage(Storage):
         from redis import StrictRedis
         self._redis = StrictRedis(**config.REDIS_CONFIG)
 
-    def register_operation(self, import_key, operation, pk):
+    def register_operations(self, import_key, operation, *pks):
         key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
         score = datetime.datetime.now().timestamp()
 
-        # key, score, value
-        self._redis.zadd(key, score, '%s:%s' % (operation, str(pk)))
+        items = chain(*((score, '%s:%s' % (operation, str(pk))) for pk in pks))
+
+        # key, score1, value1, score2, value2, ...
+        self._redis.zadd(key, *items)
 
     def get_operations(self, import_key, count, **kwargs):
         ops_key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
