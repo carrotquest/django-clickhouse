@@ -9,7 +9,10 @@ class StorageTest(TestCase):
     def setUp(self):
         # Clean storage
         redis = self.storage._redis
-        redis.delete(*redis.keys('clickhouse_sync*'))
+
+        keys = redis.keys('clickhouse_sync*')
+        if keys:
+            redis.delete(*keys)
 
     def test_operation_pks(self):
         self.storage.register_operation_wrapped('test', 'insert', 100500)
@@ -46,3 +49,16 @@ class StorageTest(TestCase):
     def test_import_batch(self):
         self.storage.write_import_batch('test', [str(i) for i in range(10)])
         self.assertTupleEqual(tuple(str(i) for i in range(10)), self.storage.get_import_batch('test'))
+
+    def test_post_sync(self):
+        self.storage.register_operation_wrapped('test', 'insert', 100500)
+        self.storage.register_operation_wrapped('test', 'insert', 100501)
+        self.storage.get_operations('test', 10)
+        self.storage.write_import_batch('test', [str(i) for i in range(10)])
+        self.storage.register_operation_wrapped('test', 'insert', 100502)
+
+        self.storage.post_sync('test')
+        self.assertListEqual([
+            ('insert', '100502')
+        ], self.storage.get_operations('test', 10))
+        self.assertTupleEqual(tuple(), self.storage.get_import_batch('test'))
