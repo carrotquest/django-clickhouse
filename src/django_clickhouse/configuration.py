@@ -13,7 +13,7 @@ PREFIX = getattr(settings, 'CLICKHOUSE_SETTINGS_PREFIX', 'CLICKHOUSE_')
 DEFAULTS = {
     'DATABASES': {},
     'SYNC_BATCH_SIZE': 10000,
-    'SYNC_STORAGE': 'django_clickhouse.storage.DBStorage',
+    'SYNC_STORAGE': 'django_clickhouse.storages.RedisStorage',
     'SYNC_DELAY': 5,
     'REDIS_CONFIG': None,
     'STATSD_PREFIX': 'clickhouse',

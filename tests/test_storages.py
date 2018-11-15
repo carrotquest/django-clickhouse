@@ -1,18 +1,16 @@
 from django.test import TestCase
 
-from django_clickhouse.storage import RedisStorage
+from django_clickhouse.storages import RedisStorage
 
 
 class StorageTest(TestCase):
     storage = RedisStorage()
 
     def setUp(self):
-        # Clean storage
-        redis = self.storage._redis
-
-        keys = redis.keys('clickhouse_sync*')
-        if keys:
-            redis.delete(*keys)
+        self.storage.flush()
+        
+    def tearDown(self):
+        self.storage.flush()
 
     def test_operation_pks(self):
         self.storage.register_operations_wrapped('test', 'insert', 100500)

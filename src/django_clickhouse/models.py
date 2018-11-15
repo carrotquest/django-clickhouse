@@ -3,7 +3,7 @@ This file contains base django model to be synced with ClickHouse.
 It saves all operations to storage in order to write them to ClickHouse later.
 """
 
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Type
 
 import six
 from django.db import transaction
@@ -12,7 +12,7 @@ from django.dispatch import receiver
 from django.db.models import QuerySet as DjangoQuerySet, Manager as DjangoManager, Model as DjangoModel
 
 from .configuration import config
-from .storage import Storage
+from .storages import Storage
 from .utils import lazy_class_import
 
 
@@ -20,14 +20,14 @@ try:
     from django_pg_returning.manager import UpdateReturningMixin
 except ImportError:
     class UpdateReturningMixin:
-        pass
+        fake = True
 
 
 try:
     from django_pg_bulk_update.manager import BulkUpdateManagerMixin
 except ImportError:
     class BulkUpdateManagerMixin:
-        pass
+        fake = True
 
 
 class ClickHouseSyncUpdateReturningQuerySetMixin(UpdateReturningMixin):
@@ -35,23 +35,27 @@ class ClickHouseSyncUpdateReturningQuerySetMixin(UpdateReturningMixin):
     This mixin adopts methods of django-pg-returning library
     """
 
-    def _register_ops(self, result):
+    def _register_ops(self, operation, result):
         pk_name = self.model._meta.pk.name
         pk_list = result.values_list(pk_name, flat=True)
-        self.model.register_clickhouse_operations('update', *pk_list, using=self.db)
+        self.model.register_clickhouse_operations(operation, *pk_list, using=self.db)
 
     def update_returning(self, **updates):
         result = super().update_returning(**updates)
-        self._register_ops(result)
+        self._register_ops('update', result)
         return result
 
     def delete_returning(self):
         result = super().delete_returning()
-        self._register_ops(result)
+        self._register_ops('delete', result)
         return result
 
 
 class ClickHouseSyncBulkUpdateManagerMixin(BulkUpdateManagerMixin):
+    """
+    This mixin adopts methods of django-pg-bulk-update library
+    """
+
     def _update_returning_param(self, returning):
         pk_name = self.model._meta.pk.name
         if returning is None:
@@ -85,13 +89,10 @@ class ClickHouseSyncBulkUpdateManagerMixin(BulkUpdateManagerMixin):
 
 class ClickHouseSyncQuerySetMixin:
     def update(self, **kwargs):
-        if self.model.clickhouse_sync_type == 'redis':
-            pk_name = self.model._meta.pk.name
-            res = self.only(pk_name).update_returning(**kwargs).values_list(pk_name, flat=True)
-            self.model.register_clickhouse_operations('update', *res, usint=self.db)
-            return len(res)
-        else:
-            return super().update(**kwargs)
+        pk_name = self.model._meta.pk.name
+        res = self.only(pk_name).update_returning(**kwargs).values_list(pk_name, flat=True)
+        self.model.register_clickhouse_operations('update', *res, using=self.db)
+        return len(res)
 
     def bulk_create(self, objs, batch_size=None):
         objs = super().bulk_create(objs, batch_size=batch_size)
@@ -100,13 +101,21 @@ class ClickHouseSyncQuerySetMixin:
         return objs
 
 
+# I add library dependant mixins to base classes only if libraries are installed
+qs_bases = [ClickHouseSyncQuerySetMixin, DjangoQuerySet]
+
+if not getattr(UpdateReturningMixin, 'fake', False):
+    qs_bases.append(ClickHouseSyncUpdateReturningQuerySetMixin)
+
+if not getattr(BulkUpdateManagerMixin, 'fake', False):
+    qs_bases.append(ClickHouseSyncBulkUpdateManagerMixin)
+
+ClickHouseSyncModelQuerySet = type('ClickHouseSyncModelQuerySet', tuple(qs_bases), {})
+
+
 class ClickHouseSyncModelMixin:
     def get_queryset(self):
         return ClickHouseSyncModelQuerySet(model=self.model, using=self._db)
-
-
-class ClickHouseSyncModelQuerySet(ClickHouseSyncQuerySetMixin, DjangoQuerySet):
-    pass
 
 
 class ClickHouseSyncModelManager(ClickHouseSyncModelMixin, DjangoManager):
@@ -133,7 +142,8 @@ class ClickHouseSyncModel(DjangoModel):
         return storage_cls()
 
     @classmethod
-    def register_clickhouse_sync_model(cls, model_cls):  # type: (Type[ClickHouseModel]) -> None
+    def register_clickhouse_sync_model(cls, model_cls):
+        # type: (Type['django_clickhouse.clickhouse_models.ClickHouseModel']) -> None
         """
         Registers ClickHouse model to listen to this model updates
         :param model_cls: Model class to register
@@ -142,7 +152,7 @@ class ClickHouseSyncModel(DjangoModel):
         cls._clickhouse_sync_models.append(model_cls)
 
     @classmethod
-    def get_clickhouse_sync_models(cls):  # type: () -> List[ClickHouseModel]
+    def get_clickhouse_sync_models(cls):  # type: () -> List['django_clickhouse.clickhouse_models.ClickHouseModel']
         """
         Returns all clickhouse models, listening to this class
         :return:
@@ -159,13 +169,12 @@ class ClickHouseSyncModel(DjangoModel):
         :param using: Database alias registered instances are from
         :return: None
         """
+        def _on_commit():
+            for model_cls in cls.get_clickhouse_sync_models():
+                storage.register_operations_wrapped(model_cls.get_import_key(), operation, *model_pks)
+
         if len(model_pks) > 0:
             storage = cls.get_clickhouse_storage()
-
-            def _on_commit():
-                for model_cls in cls.get_clickhouse_sync_models():
-                    storage.register_operations_wrapped(model_cls.get_import_key(), operation, *model_pks)
-
             transaction.on_commit(_on_commit, using=using)
 
     def post_save(self, created, using=None):  # type: (bool, Optional[str]) -> None

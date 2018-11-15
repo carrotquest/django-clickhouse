@@ -82,7 +82,7 @@ class Storage:
         """
         raise NotImplemented()
 
-    def register_operations(self, import_key, operation, *pks):  # type: (str, str, *Iterable[Any]) -> None
+    def register_operations(self, import_key, operation, *pks):  # type: (str, str, *Any) -> None
         """
         Registers new incoming operation
         :param import_key: A key, returned by ClickHouseModel.get_import_key() method
@@ -93,7 +93,7 @@ class Storage:
         raise NotImplementedError()
 
     def register_operations_wrapped(self, import_key, operation, *pks):
-        # type: (str, str, *Iterable[Any])  -> None
+        # type: (str, str, *Any)  -> None
         """
         This is a wrapper for register_operation method, checking main parameters.
         This method should be called from inner functions.
@@ -106,6 +106,13 @@ class Storage:
             raise ValueError('operation must be one of [insert, update, delete]')
 
         return self.register_operations(import_key, operation, *pks)
+
+    def flush(self):
+        """
+        This method is used in tests to drop all storage data
+        :return: None
+        """
+        raise NotImplemented()
 
 
 class RedisStorage(Storage):
@@ -171,3 +178,15 @@ class RedisStorage(Storage):
             .zremrangebyscore(ops_key, '-inf', score)\
             .delete(batch_key)\
             .execute()
+
+    def flush(self):
+        key_tpls = [
+            self.REDIS_KEY_TS_TEMPLATE.format(import_key='*'),
+            self.REDIS_KEY_OPS_TEMPLATE.format(import_key='*'),
+            self.REDIS_KEY_BATCH_TEMPLATE.format(import_key='*')
+        ]
+        for tpl in key_tpls:
+            keys = self._redis.keys(tpl)
+            if keys:
+                self._redis.delete(*keys)
+
