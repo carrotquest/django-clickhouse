@@ -1,41 +1,53 @@
-from typing import Union, Any
+import datetime
+from typing import Union, Any, Optional
 
+import pytz
 import six
 from importlib import import_module
 
+from infi.clickhouse_orm.database import Database
 
-def get_clickhouse_tz_offset():
+from .db_clients import connections
+
+
+def get_tz_offset(db_alias=None):  # type: (Optional[str]) -> int
     """
-    Получает смещение временной зоны сервера ClickHouse в минутах
+    Returns ClickHouse server timezone offset in minutes
+    :param db_alias: The database alias used
     :return: Integer
     """
-    # Если даты форматируются вручную, то сервер воспринимает их как локаль сервера. Надо ее вычесть.
-    return int(settings.CLICKHOUSE_DB.server_timezone.utcoffset(datetime.datetime.utcnow()).total_seconds() / 60)
+    db = connections[db_alias]
+    return int(db.server_timezone.utcoffset(datetime.datetime.utcnow()).total_seconds() / 60)
 
 
-def format_datetime(dt, timezone_offset=0, day_end=False):
+def format_datetime(dt, timezone_offset=0, day_end=False, db_alias=None):
+    # type: (Union[datetime.date, datetime.datetime], int, bool, Optional[str]) -> str
     """
-    Форматирует datetime.datetime в строковое представление, которое можно использовать в запросах к ClickHouse
-    :param dt: Объект datetime.datetime или datetime.date
-    :param timezone_offset: Смещение временной зоны в минутах
-    :param day_end: Если флаг установлен, то будет взято время окончания дня, а не начала
-    :return: Строковое представление даты-времени
+    Formats datetime and date objects to format that can be used in WHERE conditions of query
+    :param dt: datetime.datetime or datetime.date object
+    :param timezone_offset: timezone offset (minutes)
+    :param day_end: If datetime.date is given and flag is set, returns day end time, not day start.
+    :param db_alias: The database alias used
+    :return: A string representing datetime
     """
     assert isinstance(dt, (datetime.datetime, datetime.date)), "dt must be datetime.datetime instance"
     assert type(timezone_offset) is int, "timezone_offset must be integer"
 
-    # datetime.datetime наследует datetime.date. Поэтому нельзя делать условие без отрицания
+    # datetime.datetime inherits datetime.date. So I can't just make isinstance(dt, datetime.date)
     if not isinstance(dt, datetime.datetime):
         t = datetime.time.max if day_end else datetime.time.min
         dt = datetime.datetime.combine(dt, t)
 
+    # Convert datetime to UTC, if it has timezone
     if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
         dt = pytz.utc.localize(dt)
     else:
         dt = dt.astimezone(pytz.utc)
 
-    # Если даты форматируются вручную, то сервер воспринимает их как локаль сервера.
-    return (dt - datetime.timedelta(minutes=timezone_offset - get_clickhouse_tz_offset())).strftime("%Y-%m-%d %H:%M:%S")
+    # Dates in ClickHouse are parsed in server local timezone. So I need to add server timezone
+    server_dt = dt - datetime.timedelta(minutes=timezone_offset - get_tz_offset(db_alias))
+
+    return server_dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
 def lazy_class_import(obj):  # type: (Union[str, Any]) -> Any

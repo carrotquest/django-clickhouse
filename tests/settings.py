@@ -34,7 +34,16 @@ INSTALLED_APPS = [
     "tests"
 ]
 
+CLICKHOUSE_DATABASES = {
+    'default': {
+        'db_name': 'test',
+        'username': 'default',
+        'password': ''
+    }
+}
+
 CLICKHOUSE_SYNC_BATCH_SIZE = 5000
+
 CLICKHOUSE_REDIS_CONFIG = {
     'host': '127.0.0.1',
     'port': 6379,

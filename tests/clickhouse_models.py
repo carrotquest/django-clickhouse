@@ -9,7 +9,8 @@ class TestClickHouseModel(ClickHouseModel):
     django_model = TestModel
     sync_delay = 5
 
+    id = fields.Int32Field()
     created_date = fields.DateField()
-    value = fields.UInt32Field()
+    value = fields.Int32Field()
 
     engine = MergeTree('created_Date')
