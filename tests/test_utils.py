@@ -3,7 +3,8 @@ from unittest import TestCase
 
 import pytz
 
-from django_clickhouse.utils import get_tz_offset, format_datetime
+from django_clickhouse.models import ClickHouseSyncModel
+from django_clickhouse.utils import get_tz_offset, format_datetime, lazy_class_import
 
 
 class GetTZOffsetTest(TestCase):
@@ -45,3 +46,11 @@ class FormatDateTimeTest(TestCase):
         self.assertEqual(format_datetime(dt, day_end=True, timezone_offset=60), '2017-01-03 03:59:59')
         dt = datetime.date(2017, 1, 2)
         self.assertEqual(format_datetime(dt, timezone_offset=60), '2017-01-02 04:00:00')
+
+
+class TestLazyClassImport(TestCase):
+    def test_str(self):
+        self.assertEqual(ClickHouseSyncModel, lazy_class_import('django_clickhouse.models.ClickHouseSyncModel'))
+
+    def test_cls(self):
+        self.assertEqual(ClickHouseSyncModel, lazy_class_import(ClickHouseSyncModel))

@@ -62,6 +62,7 @@ def lazy_class_import(obj):  # type: (Union[str, Any]) -> Any
         module = import_module(module_name)
 
         try:
+            print(module, obj_name)
             return getattr(module, obj_name)
         except AttributeError:
             raise ImportError('Invalid import path `%s`' % obj)
