@@ -89,6 +89,8 @@ class ClickHouseSyncBulkUpdateManagerMixin(BulkUpdateManagerMixin):
 
 class ClickHouseSyncQuerySetMixin:
     def update(self, **kwargs):
+        # BUG I use update_returning method here. But it is not suitable for databases other then PostgreSQL
+        # and requires django-pg-update-returning installed
         pk_name = self.model._meta.pk.name
         res = self.only(pk_name).update_returning(**kwargs).values_list(pk_name, flat=True)
         self.model.register_clickhouse_operations('update', *res, using=self.db)
