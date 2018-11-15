@@ -2,13 +2,17 @@
 This file defines base abstract models to inherit from
 """
 import datetime
+from collections import defaultdict
+from itertools import chain
+from typing import List, Tuple
 
-from django.utils.timezone import now
+from django.db.models import Model as DjangoModel
 from infi.clickhouse_orm.models import Model as InfiModel, ModelBase as InfiModelBase
-from typing import Set, Union
 
 from six import with_metaclass
 
+from .db_clients import connections
+from .serializers import Django2ClickHouseModelSerializer
 from .models import ClickHouseSyncModel
 from .utils import lazy_class_import
 from . import config
@@ -32,10 +36,17 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     Base model for all other models
     """
     django_model = None
+    django_model_serializer = Django2ClickHouseModelSerializer
 
     sync_batch_size = None
     sync_storage = None
     sync_delay = None
+    sync_database_alias = None
+
+    @classmethod
+    def get_django_model_serializer(cls):
+        serializer_cls = lazy_class_import(cls.django_model_serializer)
+        return serializer_cls()
 
     @classmethod
     def get_sync_batch_size(cls):
@@ -72,13 +83,22 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
 
         return True
 
-    def import_batch(self):
+    def get_sync_objects(self, operations):  # type: (List[Tuple[str, str]]) -> List[DjangoModel]
         """
-        Imports batch to ClickHouse
-        :return:
+        Returns objects from main database to sync
+        :param operations: A list of operations to perform
+        :return: A list of django_model instances
         """
-        pass
+        pk_by_db = defaultdict(set)
+        for op, pk_str in operations:
+            using, pk = pk_str.split('.')
+            pk_by_db[using].add(pk)
 
+        objs = chain(*(
+            self.django_model.objects.filter(pk__in=pk_set).using(using)
+            for using, pk_set in pk_by_db
+        ))
+        return list(objs)
 
     def sync_batch_from_storage(self):
         """
@@ -87,20 +107,21 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         """
         storage = self.get_storage()
         import_key = self.get_import_key()
-        storage.pre_sync(import_key)
-        #     1) pre_sync()
-        #     2) get_import_batch(). If batch is present go to 5)
-        #     3) If batch is None, call get_operations()
-        #     4) Transform operations to batch and call write_import_batch()
-        #     5) Import batch to ClickHouse
+        conn = connections[self.sync_database_alias]
 
+        storage.pre_sync(import_key)
         batch = storage.get_import_batch(import_key)
+
         if batch is None:
             operations = storage.get_operations(import_key, self.get_sync_batch_size())
-            batch = self.engine.get_batch(operations)
-            storage.write_import_batch(import_key, batch)
+            import_objects = self.get_sync_objects(operations)
 
-        self.import_batch(batch)
+            batch = self.engine.get_insert_batch(self.__class__, conn, import_objects)
+            storage.write_import_batch(import_key, [obj.to_tsv() for obj in batch])
+        else:
+            pass  # Previous import error, retry
+
+        conn.insert(batch)
         storage.post_sync(import_key)
 
 

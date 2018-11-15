@@ -6,7 +6,7 @@ It saves all operations to storage in order to write them to ClickHouse later.
 from typing import Optional, Any, List, Type
 
 import six
-from django.db import transaction
+from django.db import transaction, DEFAULT_DB_ALIAS
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.db.models import QuerySet as DjangoQuerySet, Manager as DjangoManager, Model as DjangoModel
@@ -171,6 +171,8 @@ class ClickHouseSyncModel(DjangoModel):
         :param using: Database alias registered instances are from
         :return: None
         """
+        model_pks = ['%s.%d' % (using or DEFAULT_DB_ALIAS, pk) for pk in model_pks]
+
         def _on_commit():
             for model_cls in cls.get_clickhouse_sync_models():
                 storage.register_operations_wrapped(model_cls.get_import_key(), operation, *model_pks)
