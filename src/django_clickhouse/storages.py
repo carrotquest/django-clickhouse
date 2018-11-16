@@ -10,8 +10,10 @@ import datetime
 from itertools import chain
 from typing import Any, Optional, List, Tuple, Iterable
 
-from .exceptions import ConfigurationError
+from statsd.defaults.django import statsd
+
 from .configuration import config
+from .exceptions import ConfigurationError
 
 
 class Storage:
@@ -48,6 +50,16 @@ class Storage:
         :return: None
         """
         pass
+
+    def post_batch_removed(self, import_key, batch_size):  # type: (str, int) -> None
+        """
+        This method marks that batch has been removed in statsd
+        :param import_key: A key, returned by ClickHouseModel.get_import_key() method
+        :param batch_size: Batch size to subtract from queue counter
+        :return: None
+        """
+        key = "%s.sync.%s.queue" % (config.STATSD_PREFIX, import_key)
+        statsd.gauge(key, -batch_size, delta=True)
 
     def get_import_batch(self, import_key, **kwargs):
         # type: (str, **dict) -> Optional[Tuple[str]]
@@ -104,6 +116,9 @@ class Storage:
         """
         if operation not in {'insert', 'update', 'delete'}:
             raise ValueError('operation must be one of [insert, update, delete]')
+
+        statsd_key = "%s.sync.%s.queue" % (config.STATSD_PREFIX, import_key)
+        statsd.gauge(statsd_key, len(pks), delta=True)
 
         return self.register_operations(import_key, operation, *pks)
 
@@ -176,10 +191,15 @@ class RedisStorage(Storage):
 
         score = self._redis.get(ts_key)
         if score:
-            self._redis.pipeline()\
-                .zremrangebyscore(ops_key, '-inf', float(score))\
-                .delete(batch_key)\
+            res = self._redis.pipeline() \
+                .zremrangebyscore(ops_key, '-inf', float(score)) \
+                .delete(batch_key) \
                 .execute()
+            batch_size = int(res[1])
+        else:
+            batch_size = 0
+
+        self.post_batch_removed(import_key, batch_size)
 
     def flush(self):
         key_tpls = [

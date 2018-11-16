@@ -1,5 +1,5 @@
 import datetime
-from typing import Union, Any, Optional
+from typing import Union, Any, Optional, TypeVar, Set
 
 import pytz
 import six
@@ -8,6 +8,9 @@ from importlib import import_module
 from infi.clickhouse_orm.database import Database
 
 from .database import connections
+
+
+T = TypeVar('T')
 
 
 def get_tz_offset(db_alias=None):  # type: (Optional[str]) -> int
@@ -67,3 +70,20 @@ def lazy_class_import(obj):  # type: (Union[str, Any]) -> Any
             raise ImportError('Invalid import path `%s`' % obj)
     else:
         return obj
+
+
+def get_subclasses(cls, recursive=False):  # type: (T, bool) -> Set[T]
+    """
+    Gets all subclasses of given class
+    Attention!!! Classes would be found only if they were imported before using this function
+    :param cls: Class to get subcalsses
+    :param recursive: If flag is set, returns subclasses of subclasses and so on too
+    :return: A list of subclasses
+    """
+    subclasses = set(cls.__subclasses__())
+
+    if recursive:
+        for subcls in subclasses.copy():
+            subclasses.update(get_subclasses(subcls, recursive=True))
+
+    return subclasses

@@ -21,6 +21,7 @@ DEFAULTS = {
     'STATSD_PREFIX': 'clickhouse',
     'MIGRATIONS_PACKAGE': 'clickhouse_migrations',
     'MIGRATE_WITH_DEFAULT_DB': True,
+    'CELERY_QUEUE': 'celery'
 }
 
 
