@@ -59,4 +59,4 @@ class StorageTest(TestCase):
         self.assertListEqual([
             ('insert', '100502')
         ], self.storage.get_operations('test', 10))
-        self.assertTupleEqual(tuple(), self.storage.get_import_batch('test'))
+        self.assertIsNone(self.storage.get_import_batch('test'))

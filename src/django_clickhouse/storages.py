@@ -160,24 +160,26 @@ class RedisStorage(Storage):
 
     def get_import_batch(self, import_key, **kwargs):
         batch_key = self.REDIS_KEY_BATCH_TEMPLATE.format(import_key=import_key)
-        return tuple(item.decode() for item in self._redis.lrange(batch_key, 0, -1))
+        res = self._redis.lrange(batch_key, 0, -1)
+        return tuple(item.decode() for item in res) if res else None
 
     def write_import_batch(self, import_key, batch, **kwargs):
-        batch_key = self.REDIS_KEY_BATCH_TEMPLATE.format(import_key=import_key)
-
         # Elements are pushed to the head, so we need to invert batch in order to save correct order
-        self._redis.lpush(batch_key, *reversed(batch))
+        if batch:
+            batch_key = self.REDIS_KEY_BATCH_TEMPLATE.format(import_key=import_key)
+            self._redis.lpush(batch_key, *reversed(batch))
 
     def post_sync(self, import_key, **kwargs):
         ts_key = self.REDIS_KEY_TS_TEMPLATE.format(import_key=import_key)
         ops_key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
         batch_key = self.REDIS_KEY_BATCH_TEMPLATE.format(import_key=import_key)
 
-        score = float(self._redis.get(ts_key))
-        self._redis.pipeline()\
-            .zremrangebyscore(ops_key, '-inf', score)\
-            .delete(batch_key)\
-            .execute()
+        score = self._redis.get(ts_key)
+        if score:
+            self._redis.pipeline()\
+                .zremrangebyscore(ops_key, '-inf', float(score))\
+                .delete(batch_key)\
+                .execute()
 
     def flush(self):
         key_tpls = [

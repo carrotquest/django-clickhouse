@@ -1,11 +1,11 @@
 from django_clickhouse.clickhouse_models import ClickHouseModel
-from django_clickhouse.engines import MergeTree
+from django_clickhouse.engines import MergeTree, CollapsingMergeTree
 from infi.clickhouse_orm import fields
 
 from tests.models import TestModel
 
 
-class TestClickHouseModel(ClickHouseModel):
+class ClickHouseTestModel(ClickHouseModel):
     django_model = TestModel
     sync_delay = 5
 
@@ -14,3 +14,15 @@ class TestClickHouseModel(ClickHouseModel):
     value = fields.Int32Field()
 
     engine = MergeTree('created_date', ('id',))
+
+
+class ClickHouseCollapseTestModel(ClickHouseModel):
+    django_model = TestModel
+    sync_delay = 5
+
+    id = fields.Int32Field()
+    created_date = fields.DateField()
+    value = fields.Int32Field()
+    sign = fields.Int8Field()
+
+    engine = CollapsingMergeTree('created_date', ('id',), 'sign')

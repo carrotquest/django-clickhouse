@@ -70,7 +70,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
 
     @classmethod
     def get_storage(cls):
-        return lazy_class_import(cls.sync_storage or config.SYNC_STORAGE)
+        return lazy_class_import(cls.sync_storage or config.SYNC_STORAGE)()
 
     @classmethod
     def get_sync_delay(cls):
@@ -99,7 +99,8 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
 
         return True
 
-    def get_sync_objects(self, operations):  # type: (List[Tuple[str, str]]) -> List[DjangoModel]
+    @classmethod
+    def get_sync_objects(cls, operations):  # type: (List[Tuple[str, str]]) -> List[DjangoModel]
         """
         Returns objects from main database to sync
         :param operations: A list of operations to perform
@@ -111,33 +112,38 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
             pk_by_db[using].add(pk)
 
         objs = chain(*(
-            self.django_model.objects.filter(pk__in=pk_set).using(using)
-            for using, pk_set in pk_by_db
+            cls.django_model.objects.filter(pk__in=pk_set).using(using)
+            for using, pk_set in pk_by_db.items()
         ))
         return list(objs)
 
-    def sync_batch_from_storage(self):
+    @classmethod
+    def sync_batch_from_storage(cls):
         """
         Gets one batch from storage and syncs it.
         :return:
         """
-        storage = self.get_storage()
-        import_key = self.get_import_key()
-        conn = connections[self.sync_database_alias]
+        storage = cls.get_storage()
+        import_key = cls.get_import_key()
+        conn = connections[cls.sync_database_alias]
 
         storage.pre_sync(import_key)
         batch = storage.get_import_batch(import_key)
 
         if batch is None:
-            operations = storage.get_operations(import_key, self.get_sync_batch_size())
-            import_objects = self.get_sync_objects(operations)
+            operations = storage.get_operations(import_key, cls.get_sync_batch_size())
+            import_objects = cls.get_sync_objects(operations)
 
-            batch = self.engine.get_insert_batch(self.__class__, conn, import_objects)
-            storage.write_import_batch(import_key, [obj.to_tsv() for obj in batch])
+            batch = cls.engine.get_insert_batch(cls, conn, import_objects)
+
+            if batch:
+                storage.write_import_batch(import_key, [obj.to_tsv() for obj in batch])
         else:
             pass  # Previous import error, retry
 
-        conn.insert(batch)
+        if batch:
+            conn.insert(batch)
+
         storage.post_sync(import_key)
 
 

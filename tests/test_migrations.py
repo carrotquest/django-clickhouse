@@ -4,7 +4,7 @@ from infi.clickhouse_orm.migrations import MigrationHistory
 from django_clickhouse.database import connections
 from django_clickhouse.migrations import migrate_app
 from django_clickhouse.routers import DefaultRouter
-from tests.clickhouse_models import TestClickHouseModel
+from tests.clickhouse_models import ClickHouseTestModel
 
 
 class NoMigrateRouter(DefaultRouter):
@@ -33,7 +33,7 @@ class MigrateAppTest(TestCase):
 
     def test_migrate_app(self):
         migrate_app('tests', 'default')
-        self.assertTrue(table_exists(self.db, TestClickHouseModel))
+        self.assertTrue(table_exists(self.db, ClickHouseTestModel))
 
         self.assertEqual(1, self.db.count(MigrationHistory))
 
@@ -44,4 +44,4 @@ class MigrateAppTest(TestCase):
     @override_settings(CLICKHOUSE_DATABASE_ROUTER=NoMigrateRouter)
     def test_router_not_allowed(self):
         migrate_app('tests', 'default')
-        self.assertFalse(table_exists(self.db, TestClickHouseModel))
+        self.assertFalse(table_exists(self.db, ClickHouseTestModel))

@@ -7,6 +7,10 @@ from django.db.models import Model as DjangoModel
 from infi.clickhouse_orm import engines as infi_engines
 from infi.clickhouse_orm.database import Database
 
+from django_clickhouse.database import connections
+from .configuration import config
+from .utils import lazy_class_import
+
 T = TypeVar('T')
 
 
@@ -50,10 +54,12 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
                 max_date = obj_date
 
         obj_ids = [str(obj.id) for obj in objects]
-        query = "SELECT * FROM $table FINAL WHERE `%s` >= '%s' AND `%s` <= '%s', id IN (%s)" \
+        query = "SELECT * FROM $table FINAL WHERE `%s` >= '%s' AND `%s` <= '%s' AND id IN (%s)" \
                 % (self.date_col, min_date.isoformat(), self.date_col, max_date.isoformat(), ', '.join(obj_ids))
 
-        qs = model_cls.get_database().select(query, model_class=model_cls)
+        db_router = lazy_class_import(config.DATABASE_ROUTER)()
+        db = db_router.db_for_read(model_cls)
+        qs = connections[db].select(query, model_class=model_cls)
         return list(qs)
 
     def get_insert_batch(self, model_cls, database, objects):
