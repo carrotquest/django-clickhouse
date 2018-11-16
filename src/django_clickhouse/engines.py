@@ -6,6 +6,8 @@ from typing import List, TypeVar, Type
 from django.db.models import Model as DjangoModel
 from infi.clickhouse_orm import engines as infi_engines
 from infi.clickhouse_orm.database import Database
+from infi.clickhouse_orm.models import Model as InfiModel
+from statsd.defaults.django import statsd
 
 from django_clickhouse.database import connections
 from .configuration import config
@@ -72,7 +74,10 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         :return: A list of model_cls objects
         """
         new_objs = super(CollapsingMergeTree, self).get_insert_batch(model_cls, database, objects)
-        old_objs = self.get_final_versions(model_cls, new_objs)
+
+        statsd_key = "%s.sync.%s.get_final_versions" % (config.STATSD_PREFIX, model_cls.__name__)
+        with statsd.timer(statsd_key):
+            old_objs = self.get_final_versions(model_cls, new_objs)
 
         for obj in old_objs:
             self.set_obj_sign(obj, -1)

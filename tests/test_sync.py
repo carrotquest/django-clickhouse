@@ -43,6 +43,7 @@ class SyncTest(TransactionTestCase):
         ClickHouseCollapseTestModel.sync_batch_from_storage()
 
         synced_data = list(self.db.select('SELECT * FROM $table FINAL', model_class=ClickHouseCollapseTestModel))
+        self.assertGreaterEqual(1, len(synced_data))
         self.assertEqual(obj.created_date, synced_data[0].created_date)
         self.assertEqual(obj.value, synced_data[0].value)
         self.assertEqual(obj.id, synced_data[0].id)
