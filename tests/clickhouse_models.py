@@ -13,4 +13,4 @@ class TestClickHouseModel(ClickHouseModel):
     created_date = fields.DateField()
     value = fields.Int32Field()
 
-    engine = MergeTree('created_Date')
+    engine = MergeTree('created_date', ('id',))

@@ -1,11 +1,9 @@
 """
 This file contains wrappers for infi.clckhouse_orm engines to use in django-clickhouse
 """
-from collections import defaultdict
-from itertools import chain
-from typing import List, Tuple, TypeVar, Type, Optional
-from django.db.models import Model as DjangoModel
+from typing import List, TypeVar, Type
 
+from django.db.models import Model as DjangoModel
 from infi.clickhouse_orm import engines as infi_engines
 from infi.clickhouse_orm.database import Database
 
@@ -55,7 +53,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         query = "SELECT * FROM $table FINAL WHERE `%s` >= '%s' AND `%s` <= '%s', id IN (%s)" \
                 % (self.date_col, min_date.isoformat(), self.date_col, max_date.isoformat(), ', '.join(obj_ids))
 
-        qs = model_cls.select(query, model_class=model_cls)
+        qs = model_cls.get_database().select(query, model_class=model_cls)
         return list(qs)
 
     def get_insert_batch(self, model_cls, database, objects):

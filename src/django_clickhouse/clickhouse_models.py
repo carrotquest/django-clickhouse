@@ -7,15 +7,15 @@ from itertools import chain
 from typing import List, Tuple
 
 from django.db.models import Model as DjangoModel
+from infi.clickhouse_orm.database import Database
 from infi.clickhouse_orm.models import Model as InfiModel, ModelBase as InfiModelBase
-
 from six import with_metaclass
 
-from .db_clients import connections
-from .serializers import Django2ClickHouseModelSerializer
+from .configuration import config
+from .database import connections, DEFAULT_DB_ALIAS
 from .models import ClickHouseSyncModel
+from .serializers import Django2ClickHouseModelSerializer
 from .utils import lazy_class_import
-from . import config
 
 
 class ClickHouseModelMeta(InfiModelBase):
@@ -38,10 +38,26 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     django_model = None
     django_model_serializer = Django2ClickHouseModelSerializer
 
+    read_db_aliases = (DEFAULT_DB_ALIAS,)
+    write_db_aliases = (DEFAULT_DB_ALIAS,)
+
     sync_batch_size = None
     sync_storage = None
     sync_delay = None
     sync_database_alias = None
+
+    def get_database(self, for_write=False):
+        # type: (bool) -> Database
+        """
+        Gets database for read or write purposes
+        :param for_write: Boolean flag if database is neede for read or for write
+        :return: infi.clickhouse_orm.Database instance
+        """
+        db_router = lazy_class_import(config.DATABASE_ROUTER)()
+        if for_write:
+            return db_router.db_for_write(self.__class__, instance=self)
+        else:
+            return db_router.db_for_read(self.__class__, instance=self)
 
     @classmethod
     def get_django_model_serializer(cls):

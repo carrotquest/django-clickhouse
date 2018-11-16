@@ -25,6 +25,10 @@ LOGGING = {
         'django-clickhouse': {
             'handlers': ['console'],
             'level': 'DEBUG'
+        },
+        'infi.clickhouse-orm': {
+            'handlers': ['console'],
+            'level': 'INFO'
         }
     }
 }

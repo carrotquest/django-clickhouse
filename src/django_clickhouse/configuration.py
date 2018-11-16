@@ -16,7 +16,11 @@ DEFAULTS = {
     'SYNC_STORAGE': 'django_clickhouse.storages.RedisStorage',
     'SYNC_DELAY': 5,
     'REDIS_CONFIG': None,
+    'MODELS_MODULE': 'clickhouse_models',
+    'DATABASE_ROUTER': 'django_clickhouse.routers.DefaultRouter',
     'STATSD_PREFIX': 'clickhouse',
+    'MIGRATIONS_PACKAGE': 'clickhouse_migrations',
+    'MIGRATE_WITH_DEFAULT_DB': True,
 }
 
 

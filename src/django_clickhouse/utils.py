@@ -7,7 +7,7 @@ from importlib import import_module
 
 from infi.clickhouse_orm.database import Database
 
-from .db_clients import connections
+from .database import connections
 
 
 def get_tz_offset(db_alias=None):  # type: (Optional[str]) -> int
@@ -62,7 +62,6 @@ def lazy_class_import(obj):  # type: (Union[str, Any]) -> Any
         module = import_module(module_name)
 
         try:
-            print(module, obj_name)
             return getattr(module, obj_name)
         except AttributeError:
             raise ImportError('Invalid import path `%s`' % obj)
