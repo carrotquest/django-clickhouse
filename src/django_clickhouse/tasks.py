@@ -9,30 +9,28 @@ from .utils import get_subclasses
 
 
 @shared_task(queue=config.CELERY_QUEUE)
-def sync_clickhouse_converter(cls):
+def sync_clickhouse_converter(cls):  # type: (ClickHouseModel) -> None
     """
     Syncs one batch of given ClickHouseModel
-    :param cls: Наследник ClickHouseModelConverter
-    :return: Количество загруженных в ClickHouse записей
+    :param cls: ClickHouseModel subclass
+    :return: None
     """
     statsd_key = "%s.sync.%s.time" % (config.STATSD_PREFIX, cls.__name__)
     with statsd.timing(statsd_key):
-        result = cls.sync_batch_from_storage()
-
-    return result
+        cls.sync_batch_from_storage()
 
 
 @shared_task(queue=config.CELERY_QUEUE)
 def clickhouse_auto_sync():
     """
     Plans syncing models
-    :return:
+    :return: None
     """
     # Import all model modules
     for app in settings.INSTALLED_APPS:
         import_submodules("%s.%s" % (app, config.MODELS_MODULE))
 
-    # Запускаем
+    # Start
     for cls in get_subclasses(ClickHouseModel, recursive=True):
         if cls.start_sync():
             # Даже если синхронизация вдруг не выполнится, не страшно, что мы установили период синхронизации
