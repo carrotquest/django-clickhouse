@@ -1,3 +1,5 @@
+import datetime
+
 from django.test import TestCase
 
 from django_clickhouse.storages import RedisStorage
@@ -49,6 +51,7 @@ class StorageTest(TestCase):
         self.assertTupleEqual(tuple(str(i) for i in range(10)), self.storage.get_import_batch('test'))
 
     def test_post_sync(self):
+        self.storage.pre_sync('test')
         self.storage.register_operations_wrapped('test', 'insert', 100500)
         self.storage.register_operations_wrapped('test', 'insert', 100501)
         self.storage.get_operations('test', 10)
@@ -60,3 +63,8 @@ class StorageTest(TestCase):
             ('insert', '100502')
         ], self.storage.get_operations('test', 10))
         self.assertIsNone(self.storage.get_import_batch('test'))
+
+    def test_last_sync(self):
+        dt = datetime.datetime.now()
+        self.storage.set_last_sync_time('test', dt)
+        self.assertEqual(dt, self.storage.get_last_sync_time('test'))

@@ -7,7 +7,7 @@ from tests.models import TestModel
 
 class ClickHouseTestModel(ClickHouseModel):
     django_model = TestModel
-    sync_delay = 5
+    sync_delay = 2
 
     id = fields.Int32Field()
     created_date = fields.DateField()
@@ -18,7 +18,7 @@ class ClickHouseTestModel(ClickHouseModel):
 
 class ClickHouseCollapseTestModel(ClickHouseModel):
     django_model = TestModel
-    sync_delay = 5
+    sync_delay = 2
 
     id = fields.Int32Field()
     created_date = fields.DateField()

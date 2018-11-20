@@ -32,7 +32,7 @@ def clickhouse_auto_sync():
 
     # Start
     for cls in get_subclasses(ClickHouseModel, recursive=True):
-        if cls.start_sync():
+        if cls.need_sync():
             # Даже если синхронизация вдруг не выполнится, не страшно, что мы установили период синхронизации
             # Она выполнится следующей таской через интервал.
             sync_clickhouse_converter.delay(cls)

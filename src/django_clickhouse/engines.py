@@ -43,8 +43,11 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         It also supposes primary key to by id
         :param model_cls: ClickHouseModel subclass to import
         :param objects: Objects for which final versions are searched
-        :return: A list of
+        :return: A list of model objects
         """
+        if not objects:
+            return []
+
         min_date, max_date = None, None
         for obj in objects:
             obj_date = getattr(obj, self.date_col)

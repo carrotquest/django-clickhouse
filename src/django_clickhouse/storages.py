@@ -129,6 +129,20 @@ class Storage:
         """
         raise NotImplemented()
 
+    def get_last_sync_time(self, import_key):  # type: (str) -> Optional[datetime.datetime]
+        """
+        Gets the last time, sync has been executed
+        :return: datetime.datetime if last sync has been. Otherwise - None.
+        """
+        raise NotImplemented()
+
+    def set_last_sync_time(self, import_key, dt):  # type: (str, datetime.datetime) -> None
+        """
+        Sets successful sync time
+        :return: None
+        """
+        raise NotImplemented()
+
 
 class RedisStorage(Storage):
     """
@@ -140,6 +154,8 @@ class RedisStorage(Storage):
     REDIS_KEY_OPS_TEMPLATE = 'clickhouse_sync:operations:{import_key}'
     REDIS_KEY_TS_TEMPLATE = 'clickhouse_sync:timstamp:{import_key}'
     REDIS_KEY_BATCH_TEMPLATE = 'clickhouse_sync:batch:{import_key}'
+    REDIS_KEY_LOCK = 'clickhouse_sync:lock:{import_key}'
+    REDIS_KEY_LAST_SYNC_TS = 'clickhouse_sync:last_sync:{import_key}'
 
     def __init__(self):
         # Create redis library connection. If redis is not connected properly errors should be raised
@@ -148,6 +164,7 @@ class RedisStorage(Storage):
 
         from redis import StrictRedis
         self._redis = StrictRedis(**config.REDIS_CONFIG)
+        self._lock = None
 
     def register_operations(self, import_key, operation, *pks):
         key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
@@ -184,6 +201,21 @@ class RedisStorage(Storage):
             batch_key = self.REDIS_KEY_BATCH_TEMPLATE.format(import_key=import_key)
             self._redis.lpush(batch_key, *reversed(batch))
 
+    def get_lock(self, import_key, **kwargs):
+        if self._lock is None:
+            from .redis import RedisLock
+            lock_key = self.REDIS_KEY_LOCK.format(import_key=import_key)
+            lock_timeout = kwargs.get('lock_timeout', config.SYNC_DELAY * 10)
+            self._lock = RedisLock(self._redis, lock_key, timeout=lock_timeout, blocking_timeout=0)
+
+        return self._lock
+
+    def pre_sync(self, import_key, **kwargs):
+        # Block process to be single threaded. Default sync delay is 10 * default sync delay.
+        # It can be changed for model, by passing `lock_timeout` argument to pre_sync
+        lock = self.get_lock(import_key, **kwargs)
+        lock.acquire()
+
     def post_sync(self, import_key, **kwargs):
         ts_key = self.REDIS_KEY_TS_TEMPLATE.format(import_key=import_key)
         ops_key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
@@ -201,14 +233,30 @@ class RedisStorage(Storage):
 
         self.post_batch_removed(import_key, batch_size)
 
+        # unblock lock after sync completed
+        self._lock.release()
+
     def flush(self):
         key_tpls = [
             self.REDIS_KEY_TS_TEMPLATE.format(import_key='*'),
             self.REDIS_KEY_OPS_TEMPLATE.format(import_key='*'),
-            self.REDIS_KEY_BATCH_TEMPLATE.format(import_key='*')
+            self.REDIS_KEY_BATCH_TEMPLATE.format(import_key='*'),
+            self.REDIS_KEY_LOCK.format(import_key='*'),
+            self.REDIS_KEY_LAST_SYNC_TS.format(import_key='*')
         ]
         for tpl in key_tpls:
             keys = self._redis.keys(tpl)
             if keys:
                 self._redis.delete(*keys)
 
+    def get_last_sync_time(self, import_key):
+        sync_ts_key = self.REDIS_KEY_LAST_SYNC_TS.format(import_key=import_key)
+        res = self._redis.get(sync_ts_key)
+        if res is None:
+            return None
+
+        return datetime.datetime.fromtimestamp(float(res))
+
+    def set_last_sync_time(self, import_key, dt):
+        sync_ts_key = self.REDIS_KEY_LAST_SYNC_TS.format(import_key=import_key)
+        self._redis.set(sync_ts_key, dt.timestamp())

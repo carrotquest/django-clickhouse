@@ -11,7 +11,33 @@ DATABASES = {
         'PASSWORD': 'test',
         'HOST': '127.0.0.1',
         'PORT': '5432'
-    }
+    },
+
+    # I need separate connections for multiprocessing tests
+    'create': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'test',
+        'USER': 'test',
+        'PASSWORD': 'test',
+        'HOST': '127.0.0.1',
+        'PORT': '5432'
+    },
+    'update': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'test',
+        'USER': 'test',
+        'PASSWORD': 'test',
+        'HOST': '127.0.0.1',
+        'PORT': '5432'
+    },
+    'delete': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'test',
+        'USER': 'test',
+        'PASSWORD': 'test',
+        'HOST': '127.0.0.1',
+        'PORT': '5432'
+    },
 }
 
 LOGGING = {

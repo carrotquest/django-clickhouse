@@ -7,6 +7,7 @@ from itertools import chain
 from typing import List, Tuple
 
 from django.db.models import Model as DjangoModel
+from django.utils.timezone import now
 from infi.clickhouse_orm.database import Database
 from infi.clickhouse_orm.models import Model as InfiModel, ModelBase as InfiModelBase
 from six import with_metaclass
@@ -47,6 +48,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     sync_storage = None
     sync_delay = None
     sync_database_alias = None
+    sync_lock_timeout = None
 
     def get_database(self, for_write=False):
         # type: (bool) -> Database
@@ -77,6 +79,10 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     @classmethod
     def get_sync_delay(cls):
         return cls.sync_delay or config.SYNC_DELAY
+
+    @classmethod
+    def get_lock_timeout(cls):
+        return cls.sync_lock_timeout or cls.get_sync_delay() * 10
 
     @classmethod
     def get_import_key(cls):
@@ -133,7 +139,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
             conn = connections[cls.sync_database_alias]
 
             with statsd.timer(statsd_key.format('pre_sync')):
-                storage.pre_sync(import_key)
+                storage.pre_sync(import_key, lock_timeout=cls.get_lock_timeout())
 
             with statsd.timer(statsd_key.format('get_import_batch')):
                 batch = storage.get_import_batch(import_key)
@@ -161,6 +167,24 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
 
             with statsd.timer(statsd_key.format('post_sync')):
                 storage.post_sync(import_key)
+
+                storage.set_last_sync_time(import_key, now())
+
+    @classmethod
+    def need_sync(cls):  # type: () -> bool
+        """
+        Checks if this model needs synchronization: sync is enabled and delay has passed
+        :return: Boolean
+        """
+        if not cls.sync_enabled:
+            return False
+
+        last_sync_time = cls.get_storage().get_last_sync_time(cls.get_import_key())
+
+        if last_sync_time is None:
+            return True
+
+        return (last_sync_time - datetime.datetime.now()).total_seconds() >= cls.get_sync_delay()
 
 
 # class ClickHouseModelConverter:
