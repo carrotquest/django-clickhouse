@@ -51,7 +51,7 @@ class ClickHouseSyncUpdateReturningQuerySetMixin(UpdateReturningMixin):
         return result
 
 
-class ClickHouseSyncBulkUpdateManagerMixin(BulkUpdateManagerMixin):
+class ClickHouseSyncBulkUpdateQuerySetMixin(BulkUpdateManagerMixin):
     """
     This mixin adopts methods of django-pg-bulk-update library
     """
@@ -110,17 +110,17 @@ if not getattr(UpdateReturningMixin, 'fake', False):
     qs_bases.append(ClickHouseSyncUpdateReturningQuerySetMixin)
 
 if not getattr(BulkUpdateManagerMixin, 'fake', False):
-    qs_bases.append(ClickHouseSyncBulkUpdateManagerMixin)
+    qs_bases.append(ClickHouseSyncBulkUpdateQuerySetMixin)
 
-ClickHouseSyncModelQuerySet = type('ClickHouseSyncModelQuerySet', tuple(qs_bases), {})
+ClickHouseSyncQuerySet = type('ClickHouseSyncModelQuerySet', tuple(qs_bases), {})
 
 
-class ClickHouseSyncModelMixin:
+class ClickHouseSyncManagerMixin:
     def get_queryset(self):
-        return ClickHouseSyncModelQuerySet(model=self.model, using=self._db)
+        return ClickHouseSyncQuerySet(model=self.model, using=self._db)
 
 
-class ClickHouseSyncModelManager(ClickHouseSyncModelMixin, DjangoManager):
+class ClickHouseSyncManager(ClickHouseSyncManagerMixin, DjangoManager):
     pass
 
 
@@ -129,7 +129,7 @@ class ClickHouseSyncModel(DjangoModel):
     Base model for syncing data. Each django model synced with data must inherit this
     """
     _clickhouse_sync_models = []
-    objects = ClickHouseSyncModelManager()
+    objects = ClickHouseSyncManager()
 
     class Meta:
         abstract = True
