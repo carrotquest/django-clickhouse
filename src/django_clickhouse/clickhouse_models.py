@@ -9,6 +9,7 @@ from typing import List, Tuple
 from django.db.models import Model as DjangoModel
 from django.utils.timezone import now
 from infi.clickhouse_orm.database import Database
+from infi.clickhouse_orm.engines import CollapsingMergeTree
 from infi.clickhouse_orm.models import Model as InfiModel, ModelBase as InfiModelBase
 from six import with_metaclass
 from statsd.defaults.django import statsd
@@ -91,8 +92,11 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     def _prepare_val_for_eq(self, field_name, field, val):
         if isinstance(val, datetime.datetime):
             return val.replace(microsecond=0)
-        elif field_name == '_version':
-            return True  # Независимо от версии должно сравнение быть истиной
+
+        # Sign column for collapsing should be ignored
+        if isinstance(self.engine, CollapsingMergeTree) and field_name == self.engine.sign_col:
+            return True
+
         return val
 
     def __eq__(self, other):
@@ -183,5 +187,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
 
         if last_sync_time is None:
             return True
+
+        print(last_sync_time)
 
         return (last_sync_time - datetime.datetime.now()).total_seconds() >= cls.get_sync_delay()

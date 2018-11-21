@@ -1,3 +1,5 @@
+from enum import Enum
+
 from django_clickhouse.clickhouse_models import ClickHouseModel
 from django_clickhouse.engines import MergeTree, CollapsingMergeTree
 from infi.clickhouse_orm import fields
