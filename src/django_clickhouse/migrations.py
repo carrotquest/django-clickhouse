@@ -7,7 +7,7 @@ from django.db.models.signals import post_migrate
 from django.dispatch import receiver
 from django.db import DEFAULT_DB_ALIAS as DJANGO_DEFAULT_DB_ALIAS
 
-from infi.clickhouse_orm.migrations import MigrationHistory
+from infi.clickhouse_orm.migrations import *
 from infi.clickhouse_orm.utils import import_submodules
 
 from django_clickhouse.utils import lazy_class_import, module_exists
