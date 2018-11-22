@@ -10,7 +10,7 @@ from django.db import DEFAULT_DB_ALIAS as DJANGO_DEFAULT_DB_ALIAS
 from infi.clickhouse_orm.migrations import MigrationHistory
 from infi.clickhouse_orm.utils import import_submodules
 
-from django_clickhouse.utils import lazy_class_import
+from django_clickhouse.utils import lazy_class_import, module_exists
 from .configuration import config
 from .database import connections
 
@@ -48,22 +48,23 @@ def migrate_app(app_label, db_alias, up_to=9999):
     """
     db = connections[db_alias]
     migrations_package = "%s.%s" % (app_label, config.MIGRATIONS_PACKAGE)
-    
-    applied_migrations = db._get_applied_migrations(migrations_package)
-    modules = import_submodules(migrations_package)
 
-    unapplied_migrations = set(modules.keys()) - applied_migrations
+    if module_exists(migrations_package):
+        applied_migrations = db._get_applied_migrations(migrations_package)
+        modules = import_submodules(migrations_package)
 
-    for name in sorted(unapplied_migrations):
-        migration = modules[name].Migration()
-        migration.apply(db_alias)
+        unapplied_migrations = set(modules.keys()) - applied_migrations
 
-        db.insert([
-            MigrationHistory(package_name=migrations_package, module_name=name, applied=datetime.date.today())
-        ])
+        for name in sorted(unapplied_migrations):
+            migration = modules[name].Migration()
+            migration.apply(db_alias)
 
-        if int(name[:4]) >= up_to:
-            break
+            db.insert([
+                MigrationHistory(package_name=migrations_package, module_name=name, applied=datetime.date.today())
+            ])
+
+            if int(name[:4]) >= up_to:
+                break
 
 
 @receiver(post_migrate)

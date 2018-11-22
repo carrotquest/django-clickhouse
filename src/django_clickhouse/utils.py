@@ -4,8 +4,7 @@ from typing import Union, Any, Optional, TypeVar, Set
 import pytz
 import six
 from importlib import import_module
-
-from infi.clickhouse_orm.database import Database
+from importlib.util import find_spec
 
 from .database import connections
 
@@ -51,6 +50,17 @@ def format_datetime(dt, timezone_offset=0, day_end=False, db_alias=None):
     server_dt = dt - datetime.timedelta(minutes=timezone_offset - get_tz_offset(db_alias))
 
     return server_dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def module_exists(module_name):  # type: (str) -> bool
+    """
+    Checks if moudle exists
+    :param module_name: Dot-separated module name
+    :return: Boolean
+    """
+    # Python 3.4+
+    spam_spec = find_spec(module_name)
+    return spam_spec is not None
 
 
 def lazy_class_import(obj):  # type: (Union[str, Any]) -> Any
