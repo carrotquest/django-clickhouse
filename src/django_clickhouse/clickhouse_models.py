@@ -65,9 +65,9 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
             return db_router.db_for_read(self.__class__, instance=self)
 
     @classmethod
-    def get_django_model_serializer(cls):
+    def get_django_model_serializer(cls, writable=False):  # type: (bool) -> Django2ClickHouseModelSerializer
         serializer_cls = lazy_class_import(cls.django_model_serializer)
-        return serializer_cls()
+        return serializer_cls(cls, writable=writable)
 
     @classmethod
     def get_sync_batch_size(cls):
