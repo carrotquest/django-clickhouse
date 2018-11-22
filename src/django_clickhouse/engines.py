@@ -34,6 +34,14 @@ class MergeTree(InsertOnlyEngineMixin, infi_engines.MergeTree):
     pass
 
 
+class ReplacingMergeTree(InsertOnlyEngineMixin, infi_engines.ReplacingMergeTree):
+    pass
+
+
+class SummingMergeTree(InsertOnlyEngineMixin, infi_engines.SummingMergeTree):
+    pass
+
+
 class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTree):
     def get_final_versions(self, model_cls, objects):
         """

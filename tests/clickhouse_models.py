@@ -1,7 +1,7 @@
 from infi.clickhouse_orm import fields
 
 from django_clickhouse.clickhouse_models import ClickHouseModel
-from django_clickhouse.engines import MergeTree, CollapsingMergeTree
+from django_clickhouse.engines import ReplacingMergeTree, CollapsingMergeTree
 from tests.models import TestModel
 
 
@@ -13,7 +13,7 @@ class ClickHouseTestModel(ClickHouseModel):
     created_date = fields.DateField()
     value = fields.Int32Field()
 
-    engine = MergeTree('created_date', ('id',))
+    engine = ReplacingMergeTree('created_date', ('id',))
 
 
 class ClickHouseCollapseTestModel(ClickHouseModel):
