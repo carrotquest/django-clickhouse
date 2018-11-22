@@ -17,12 +17,11 @@ T = TypeVar('T')
 
 
 class InsertOnlyEngineMixin:
-    def get_insert_batch(self, model_cls, database, objects):
-        # type: (Type[T], Database, List[DjangoModel]) -> List[T]
+    def get_insert_batch(self, model_cls, objects):
+        # type: (Type[T], List[DjangoModel]) -> List[T]
         """
         Gets a list of model_cls instances to insert into database
         :param model_cls: ClickHouseModel subclass to import
-        :param database: infi.clickhouse_orm Database instance to sync data with
         :param objects: A list of django Model instances to sync
         :return: A list of model_cls objects
         """
@@ -75,16 +74,15 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         qs = connections[db].select(query, model_class=model_cls)
         return list(qs)
 
-    def get_insert_batch(self, model_cls, database, objects):
-        # type: (Type[T], Database, List[DjangoModel]) -> List[T]
+    def get_insert_batch(self, model_cls, objects):
+        # type: (Type[T], List[DjangoModel]) -> List[T]
         """
         Gets a list of model_cls instances to insert into database
         :param model_cls: ClickHouseModel subclass to import
-        :param database: infi.clickhouse_orm Database instance to sync data with
         :param objects: A list of django Model instances to sync
         :return: A list of model_cls objects
         """
-        new_objs = super(CollapsingMergeTree, self).get_insert_batch(model_cls, database, objects)
+        new_objs = super(CollapsingMergeTree, self).get_insert_batch(model_cls, objects)
 
         statsd_key = "%s.sync.%s.get_final_versions" % (config.STATSD_PREFIX, model_cls.__name__)
         with statsd.timer(statsd_key):

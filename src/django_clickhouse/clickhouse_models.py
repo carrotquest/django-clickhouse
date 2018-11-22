@@ -4,7 +4,7 @@ This file defines base abstract models to inherit from
 import datetime
 from collections import defaultdict
 from itertools import chain
-from typing import List, Tuple
+from typing import List, Tuple, Iterable
 
 from django.db.models import Model as DjangoModel
 from django.utils.timezone import now
@@ -130,6 +130,15 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         return list(objs)
 
     @classmethod
+    def get_insert_batch(cls, import_objects):  # type: (Iterable[DjangoModel]) -> List[ClickHouseModel]
+        """
+        Formats django model objects to batch of ClickHouse objects
+        :param import_objects: DjangoModel objects to import
+        :return: ClickHouseModel objects to import
+        """
+        return cls.engine.get_insert_batch(cls, import_objects)
+
+    @classmethod
     def sync_batch_from_storage(cls):
         """
         Gets one batch from storage and syncs it.
@@ -156,7 +165,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
                     import_objects = cls.get_sync_objects(operations)
 
                 with statsd.timer(statsd_key.format('get_insert_batch')):
-                    batch = cls.engine.get_insert_batch(cls, conn, import_objects)
+                    batch = cls.get_insert_batch(import_objects)
 
                 if batch:
                     with statsd.timer(statsd_key.format('write_import_batch')):
