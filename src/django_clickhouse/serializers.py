@@ -16,10 +16,13 @@ class Django2ClickHouseModelSerializer:
         data = model_to_dict(obj, self.serialize_fields, self.exclude_serialize_fields)
 
         # Remove None values, they should be initialized as defaults
+        params = {}
         for key, value in data.items():
             if value is None:
-                del data[key]
+                pass
             elif isinstance(value, bool):
-                data[key] = int(value)
+                params[key] = int(value)
+            else:
+                params[key] = value
 
-        return self._model_cls(**data)
+        return self._model_cls(**params)
