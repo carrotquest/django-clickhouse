@@ -51,7 +51,8 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     sync_database_alias = None
     sync_lock_timeout = None
 
-    def get_database(self, for_write=False):
+    @classmethod
+    def get_database(cls, for_write=False):
         # type: (bool) -> Database
         """
         Gets database for read or write purposes
@@ -60,9 +61,9 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         """
         db_router = lazy_class_import(config.DATABASE_ROUTER)()
         if for_write:
-            return db_router.db_for_write(self.__class__, instance=self)
+            return db_router.db_for_write(cls)
         else:
-            return db_router.db_for_read(self.__class__, instance=self)
+            return db_router.db_for_read(self)
 
     @classmethod
     def get_django_model_serializer(cls, writable=False):  # type: (bool) -> Django2ClickHouseModelSerializer
