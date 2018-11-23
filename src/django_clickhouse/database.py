@@ -15,6 +15,11 @@ class Database(InfiDatabase):
         }
         super(Database, self).__init__(**infi_kwargs)
 
+    def drop_database(self):
+        # BUG fix https://github.com/Infinidat/infi.clickhouse_orm/issues/89
+        super(Database, self).drop_database()
+        self.db_exists = False
+
     def migrate(self, migrations_package_name, up_to=9999):
         raise NotImplementedError('This method is not supported by django-clickhouse.'
                                   ' Use django_clickhouse.migrations module instead.')
