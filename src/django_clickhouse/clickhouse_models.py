@@ -63,7 +63,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         if for_write:
             return db_router.db_for_write(cls)
         else:
-            return db_router.db_for_read(self)
+            return db_router.db_for_read(cls)
 
     @classmethod
     def get_django_model_serializer(cls, writable=False):  # type: (bool) -> Django2ClickHouseModelSerializer
