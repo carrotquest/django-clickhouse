@@ -13,7 +13,12 @@ class Django2ClickHouseModelSerializer:
         self.exclude_serialize_fields = exclude_fields
 
     def serialize(self, obj):  # type: (DjangoModel) -> 'ClickHouseModel'
-        data = model_to_dict(obj, self.serialize_fields, self.exclude_serialize_fields)
+        # Standard model_to_dict ignores some fields if they have invalid naming
+        data = {}
+        for name in set(self.serialize_fields) - set(self.exclude_serialize_fields):
+            val = getattr(obj, name, None)
+            if val is not None:
+                data[name] = val
 
         # Remove None values, they should be initialized as defaults
         params = {}

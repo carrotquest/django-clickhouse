@@ -119,6 +119,9 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         :param operations: A list of operations to perform
         :return: A list of django_model instances
         """
+        if not operations:
+            return []
+
         pk_by_db = defaultdict(set)
         for op, pk_str in operations:
             using, pk = pk_str.split('.')
@@ -168,14 +171,15 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
             with statsd.timer(statsd_key.format('get_operations')):
                 operations = storage.get_operations(import_key, cls.get_sync_batch_size())
 
-            with statsd.timer(statsd_key.format('get_sync_objects')):
-                import_objects = cls.get_sync_objects(operations)
+            if operations:
+                with statsd.timer(statsd_key.format('get_sync_objects')):
+                    import_objects = cls.get_sync_objects(operations)
 
-            with statsd.timer(statsd_key.format('get_insert_batch')):
-                batch = cls.get_insert_batch(import_objects)
+                with statsd.timer(statsd_key.format('get_insert_batch')):
+                    batch = cls.get_insert_batch(import_objects)
 
-            with statsd.timer(statsd_key.format('insert')):
-                cls.insert_batch(batch)
+                with statsd.timer(statsd_key.format('insert')):
+                    cls.insert_batch(batch)
 
             with statsd.timer(statsd_key.format('post_sync')):
                 storage.post_sync(import_key)
