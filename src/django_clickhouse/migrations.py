@@ -49,6 +49,7 @@ def migrate_app(app_label, db_alias, up_to=9999, database=None):
     :param database: Sometimes I want to pass db object directly for testing purposes
     :return: None
     """
+    database = database or connections[db_alias]
     migrations_package = "%s.%s" % (app_label, config.MIGRATIONS_PACKAGE)
 
     if module_exists(migrations_package):
