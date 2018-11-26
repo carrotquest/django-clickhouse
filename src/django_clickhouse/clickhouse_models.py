@@ -174,7 +174,10 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
             if operations:
                 with statsd.timer(statsd_key.format('get_sync_objects')):
                     import_objects = cls.get_sync_objects(operations)
+            else:
+                import_objects = []
 
+            if import_objects:
                 with statsd.timer(statsd_key.format('get_insert_batch')):
                     batch = cls.get_insert_batch(import_objects)
 
@@ -227,17 +230,21 @@ class ClickHouseMultiModel(ClickHouseModel):
             with statsd.timer(statsd_key.format('get_operations')):
                 operations = storage.get_operations(import_key, cls.get_sync_batch_size())
 
-            with statsd.timer(statsd_key.format('get_sync_objects')):
-                import_objects = cls.get_sync_objects(operations)
+            if operations:
+                with statsd.timer(statsd_key.format('get_sync_objects')):
+                    import_objects = cls.get_sync_objects(operations)
+            else:
+                import_objects = []
 
-            batches = {}
-            with statsd.timer(statsd_key.format('get_insert_batch')):
-                for model_cls in cls.sub_models:
-                    batches[model_cls] = model_cls.get_insert_batch(import_objects)
+            if import_objects:
+                batches = {}
+                with statsd.timer(statsd_key.format('get_insert_batch')):
+                    for model_cls in cls.sub_models:
+                        batches[model_cls] = model_cls.get_insert_batch(import_objects)
 
-            with statsd.timer(statsd_key.format('insert')):
-                for model_cls, batch in batches.items():
-                    model_cls.insert_batch(batch)
+                with statsd.timer(statsd_key.format('insert')):
+                    for model_cls, batch in batches.items():
+                        model_cls.insert_batch(batch)
 
             with statsd.timer(statsd_key.format('post_sync')):
                 storage.post_sync(import_key)

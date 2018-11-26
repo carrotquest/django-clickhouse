@@ -61,27 +61,6 @@ class Storage:
         key = "%s.sync.%s.queue" % (config.STATSD_PREFIX, import_key)
         statsd.gauge(key, -batch_size, delta=True)
 
-    def get_import_batch(self, import_key, **kwargs):
-        # type: (str, **dict) -> Optional[Tuple[str]]
-        """
-        Returns a saved batch for ClickHouse import or None, if it was not found
-        :param import_key: A key, returned by ClickHouseModel.get_import_key() method
-        :param kwargs: Storage dependant arguments
-        :return: None, if no batch has been formed. A tuple strings, saved in write_import_batch() method.
-        """
-        raise NotImplemented()
-
-    def write_import_batch(self, import_key, batch, **kwargs):
-        # type: (str, Iterable[str], **dict) -> None
-        """
-        Saves batch for ClickHouse import
-        :param import_key: A key, returned by ClickHouseModel.get_import_key() method
-        :param batch: An iterable of strings to save as a batch
-        :param kwargs: Storage dependant arguments
-        :return: None
-        """
-        raise NotImplemented()
-
     def get_operations(self, import_key, count, **kwargs):
         # type: (str, int, **dict) -> List[Tuple[str, str]]
         """
@@ -153,7 +132,6 @@ class RedisStorage(Storage):
     """
     REDIS_KEY_OPS_TEMPLATE = 'clickhouse_sync:operations:{import_key}'
     REDIS_KEY_TS_TEMPLATE = 'clickhouse_sync:timstamp:{import_key}'
-    REDIS_KEY_BATCH_TEMPLATE = 'clickhouse_sync:batch:{import_key}'
     REDIS_KEY_LOCK = 'clickhouse_sync:lock:{import_key}'
     REDIS_KEY_LAST_SYNC_TS = 'clickhouse_sync:last_sync:{import_key}'
 
@@ -190,17 +168,6 @@ class RedisStorage(Storage):
         else:
             return []
 
-    def get_import_batch(self, import_key, **kwargs):
-        batch_key = self.REDIS_KEY_BATCH_TEMPLATE.format(import_key=import_key)
-        res = self._redis.lrange(batch_key, 0, -1)
-        return tuple(item.decode() for item in res) if res else None
-
-    def write_import_batch(self, import_key, batch, **kwargs):
-        # Elements are pushed to the head, so we need to invert batch in order to save correct order
-        if batch:
-            batch_key = self.REDIS_KEY_BATCH_TEMPLATE.format(import_key=import_key)
-            self._redis.lpush(batch_key, *reversed(batch))
-
     def get_lock(self, import_key, **kwargs):
         if self._lock is None:
             from .redis import RedisLock
@@ -219,15 +186,11 @@ class RedisStorage(Storage):
     def post_sync(self, import_key, **kwargs):
         ts_key = self.REDIS_KEY_TS_TEMPLATE.format(import_key=import_key)
         ops_key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
-        batch_key = self.REDIS_KEY_BATCH_TEMPLATE.format(import_key=import_key)
 
         score = self._redis.get(ts_key)
         if score:
-            res = self._redis.pipeline() \
-                .zremrangebyscore(ops_key, '-inf', float(score)) \
-                .delete(batch_key) \
-                .execute()
-            batch_size = int(res[1])
+            res = self._redis.zremrangebyscore(ops_key, '-inf', float(score))
+            batch_size = int(res)
         else:
             batch_size = 0
 
@@ -240,7 +203,6 @@ class RedisStorage(Storage):
         key_tpls = [
             self.REDIS_KEY_TS_TEMPLATE.format(import_key='*'),
             self.REDIS_KEY_OPS_TEMPLATE.format(import_key='*'),
-            self.REDIS_KEY_BATCH_TEMPLATE.format(import_key='*'),
             self.REDIS_KEY_LOCK.format(import_key='*'),
             self.REDIS_KEY_LAST_SYNC_TS.format(import_key='*')
         ]

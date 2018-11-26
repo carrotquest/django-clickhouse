@@ -22,7 +22,7 @@ class Django2ClickHouseModelSerializerTest(TestCase):
         self.assertEqual(self.obj.created_date, res.created_date)
 
     def test_fields(self):
-        serializer = Django2ClickHouseModelSerializer(ClickHouseTestModel, fields=('value'))
+        serializer = Django2ClickHouseModelSerializer(ClickHouseTestModel, fields=('value',))
         res = serializer.serialize(self.obj)
         self.assertIsInstance(res, ClickHouseTestModel)
         self.assertEqual(0, res.id)

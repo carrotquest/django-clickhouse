@@ -15,7 +15,8 @@ class Django2ClickHouseModelSerializer:
     def serialize(self, obj):  # type: (DjangoModel) -> 'ClickHouseModel'
         # Standard model_to_dict ignores some fields if they have invalid naming
         data = {}
-        for name in set(self.serialize_fields) - set(self.exclude_serialize_fields):
+        sync_fields = set(self.serialize_fields) - set(self.exclude_serialize_fields or ())
+        for name in sync_fields:
             val = getattr(obj, name, None)
             if val is not None:
                 data[name] = val

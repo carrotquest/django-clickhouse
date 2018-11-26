@@ -46,23 +46,17 @@ class StorageTest(TestCase):
             ('insert', '100501'),
         ], self.storage.get_operations('test2', 10))
 
-    def test_import_batch(self):
-        self.storage.write_import_batch('test', [str(i) for i in range(10)])
-        self.assertTupleEqual(tuple(str(i) for i in range(10)), self.storage.get_import_batch('test'))
-
     def test_post_sync(self):
         self.storage.pre_sync('test')
         self.storage.register_operations_wrapped('test', 'insert', 100500)
         self.storage.register_operations_wrapped('test', 'insert', 100501)
         self.storage.get_operations('test', 10)
-        self.storage.write_import_batch('test', [str(i) for i in range(10)])
         self.storage.register_operations_wrapped('test', 'insert', 100502)
 
         self.storage.post_sync('test')
         self.assertListEqual([
             ('insert', '100502')
         ], self.storage.get_operations('test', 10))
-        self.assertIsNone(self.storage.get_import_batch('test'))
 
     def test_last_sync(self):
         dt = datetime.datetime.now()
