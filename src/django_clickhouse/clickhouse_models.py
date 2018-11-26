@@ -229,7 +229,7 @@ class ClickHouseMultiModel(ClickHouseModel):
             batches = {}
             with statsd.timer(statsd_key.format('get_insert_batch')):
                 for model_cls in cls.sub_models:
-                    batches[model_cls] = cls.get_insert_batch(import_objects)
+                    batches[model_cls] = model_cls.get_insert_batch(import_objects)
 
             with statsd.timer(statsd_key.format('insert')):
                 for model_cls, batch in batches.items():
