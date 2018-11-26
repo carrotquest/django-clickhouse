@@ -1,14 +1,13 @@
 """
 This file defines router to find appropriate database
 """
-import random
 from typing import Optional
 
+import random
 import six
 
 from .clickhouse_models import ClickHouseModel
 from .configuration import config
-from .database import connections
 from .utils import lazy_class_import
 
 
@@ -43,9 +42,6 @@ class DefaultRouter:
         :param hints: Hints to make correct decision
         :return: boolean
         """
-        if connections[db_alias].readonly:
-            return False
-
         if hints.get("force_migrate_on_databases", None):
             return db_alias in hints["force_migrate_on_databases"]
 
