@@ -14,7 +14,7 @@ from django.test import TransactionTestCase, override_settings
 from django_clickhouse import config
 from django_clickhouse.database import connections
 from django_clickhouse.migrations import migrate_app
-from tests.clickhouse_models import ClickHouseTestModel, ClickHouseCollapseTestModel
+from tests.clickhouse_models import ClickHouseTestModel, ClickHouseCollapseTestModel, ClickHouseMultiTestModel
 from tests.models import TestModel
 
 
@@ -70,6 +70,35 @@ class SyncTest(TransactionTestCase):
         # sync_batch_from_storage uses FINAL, so data would be collapsed by now
         synced_data = list(ClickHouseCollapseTestModel.objects_in(connections['default']))
         self.assertEqual(0, len(synced_data))
+
+    def test_multi_model(self):
+        obj = TestModel.objects.create(value=1, created_date=datetime.date.today())
+        obj.value = 2
+        obj.save()
+        ClickHouseMultiTestModel.sync_batch_from_storage()
+
+        synced_data = list(ClickHouseTestModel.objects_in(connections['default']))
+        self.assertEqual(1, len(synced_data))
+        self.assertEqual(obj.created_date, synced_data[0].created_date)
+        self.assertEqual(obj.value, synced_data[0].value)
+        self.assertEqual(obj.id, synced_data[0].id)
+
+        # sync_batch_from_storage uses FINAL, so data would be collapsed by now
+        synced_data = list(ClickHouseCollapseTestModel.objects_in(connections['default']))
+        self.assertEqual(1, len(synced_data))
+        self.assertEqual(obj.created_date, synced_data[0].created_date)
+        self.assertEqual(obj.value, synced_data[0].value)
+        self.assertEqual(obj.id, synced_data[0].id)
+
+        obj.value = 3
+        obj.save()
+        ClickHouseMultiTestModel.sync_batch_from_storage()
+
+        synced_data = list(self.db.select('SELECT * FROM $table FINAL', model_class=ClickHouseCollapseTestModel))
+        self.assertGreaterEqual(1, len(synced_data))
+        self.assertEqual(obj.created_date, synced_data[0].created_date)
+        self.assertEqual(obj.value, synced_data[0].value)
+        self.assertEqual(obj.id, synced_data[0].id)
 
 
 @skip("This doesn't work due to different threads connection problems")

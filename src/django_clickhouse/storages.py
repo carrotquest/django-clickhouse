@@ -8,7 +8,7 @@ Storage should be able to restore current importing batch, if something goes wro
 """
 import datetime
 from itertools import chain
-from typing import Any, Optional, List, Tuple, Iterable
+from typing import Any, Optional, List, Tuple
 
 from statsd.defaults.django import statsd
 

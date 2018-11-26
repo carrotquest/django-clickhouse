@@ -1,6 +1,6 @@
 from infi.clickhouse_orm import fields
 
-from django_clickhouse.clickhouse_models import ClickHouseModel
+from django_clickhouse.clickhouse_models import ClickHouseModel, ClickHouseMultiModel
 from django_clickhouse.engines import ReplacingMergeTree, CollapsingMergeTree
 from tests.models import TestModel
 
@@ -26,3 +26,8 @@ class ClickHouseCollapseTestModel(ClickHouseModel):
     sign = fields.Int8Field()
 
     engine = CollapsingMergeTree('created_date', ('id',), 'sign')
+
+
+class ClickHouseMultiTestModel(ClickHouseMultiModel):
+    django_model = TestModel
+    sub_models = [ClickHouseTestModel, ClickHouseCollapseTestModel]
