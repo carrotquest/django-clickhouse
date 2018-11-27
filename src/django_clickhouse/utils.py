@@ -1,10 +1,12 @@
 import datetime
-from typing import Union, Any, Optional, TypeVar, Set
+from itertools import chain
+from typing import Union, Any, Optional, TypeVar, Set, Dict, Iterable
 
 import pytz
 import six
 from importlib import import_module
 from importlib.util import find_spec
+from django.db.models import Model as DjangoModel
 
 from .database import connections
 
@@ -97,3 +99,25 @@ def get_subclasses(cls, recursive=False):  # type: (T, bool) -> Set[T]
             subclasses.update(get_subclasses(subcls, recursive=True))
 
     return subclasses
+
+
+def model_to_dict(instance, fields=None, exclude_fields=None):
+    # type: (DjangoModel, Optional[Iterable[str]], Optional[Iterable[str]]) -> Dict[str, Any]
+    """
+    Standard model_to_dict ignores some fields if they have invalid naming
+    :param instance: Object to convert to dictionary
+    :param fields: Field list to extract from instance
+    :param exclude_fields: Filed list to exclude from extraction
+    :return: Serialized dictionary
+    """
+    data = {}
+
+    opts = instance._meta
+    fields = fields or {f.name for f in chain(opts.concrete_fields, opts.private_fields, opts.many_to_many)}
+
+    for name in set(fields) - set(exclude_fields or set()):
+        val = getattr(instance, name, None)
+        if val is not None:
+            data[name] = val
+
+    return data

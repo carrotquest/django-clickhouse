@@ -1,5 +1,6 @@
 from django.db.models import Model as DjangoModel
-from django.forms import model_to_dict
+
+from django_clickhouse.utils import model_to_dict
 
 
 class Django2ClickHouseModelSerializer:
@@ -13,13 +14,7 @@ class Django2ClickHouseModelSerializer:
         self.exclude_serialize_fields = exclude_fields
 
     def serialize(self, obj):  # type: (DjangoModel) -> 'ClickHouseModel'
-        # Standard model_to_dict ignores some fields if they have invalid naming
-        data = {}
-        sync_fields = set(self.serialize_fields) - set(self.exclude_serialize_fields or ())
-        for name in sync_fields:
-            val = getattr(obj, name, None)
-            if val is not None:
-                data[name] = val
+        data = model_to_dict(obj, fields=self.serialize_fields, exclude_fields=self.exclude_serialize_fields)
 
         # Remove None values, they should be initialized as defaults
         params = {}
