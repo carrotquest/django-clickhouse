@@ -28,7 +28,7 @@ class SyncTest(TransactionTestCase):
         obj = TestModel.objects.create(value=1, created_date=datetime.date.today())
         ClickHouseTestModel.sync_batch_from_storage()
 
-        synced_data = list(ClickHouseTestModel.objects_in(connections['default']))
+        synced_data = list(ClickHouseTestModel.objects.all())
         self.assertEqual(1, len(synced_data))
         self.assertEqual(obj.created_date, synced_data[0].created_date)
         self.assertEqual(obj.value, synced_data[0].value)
@@ -41,7 +41,7 @@ class SyncTest(TransactionTestCase):
         ClickHouseCollapseTestModel.sync_batch_from_storage()
 
         # sync_batch_from_storage uses FINAL, so data would be collapsed by now
-        synced_data = list(ClickHouseCollapseTestModel.objects_in(connections['default']))
+        synced_data = list(ClickHouseCollapseTestModel.objects.all())
         self.assertEqual(1, len(synced_data))
         self.assertEqual(obj.created_date, synced_data[0].created_date)
         self.assertEqual(obj.value, synced_data[0].value)
@@ -65,7 +65,7 @@ class SyncTest(TransactionTestCase):
         ClickHouseCollapseTestModel.sync_batch_from_storage()
 
         # sync_batch_from_storage uses FINAL, so data would be collapsed by now
-        synced_data = list(ClickHouseCollapseTestModel.objects_in(connections['default']))
+        synced_data = list(ClickHouseCollapseTestModel.objects.all())
         self.assertEqual(0, len(synced_data))
 
     def test_multi_model(self):
@@ -74,14 +74,14 @@ class SyncTest(TransactionTestCase):
         obj.save()
         ClickHouseMultiTestModel.sync_batch_from_storage()
 
-        synced_data = list(ClickHouseTestModel.objects_in(connections['default']))
+        synced_data = list(ClickHouseTestModel.objects.all())
         self.assertEqual(1, len(synced_data))
         self.assertEqual(obj.created_date, synced_data[0].created_date)
         self.assertEqual(obj.value, synced_data[0].value)
         self.assertEqual(obj.id, synced_data[0].id)
 
         # sync_batch_from_storage uses FINAL, so data would be collapsed by now
-        synced_data = list(ClickHouseCollapseTestModel.objects_in(connections['default']))
+        synced_data = list(ClickHouseCollapseTestModel.objects.all())
         self.assertEqual(1, len(synced_data))
         self.assertEqual(obj.created_date, synced_data[0].created_date)
         self.assertEqual(obj.value, synced_data[0].value)

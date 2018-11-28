@@ -1,4 +1,4 @@
-from typing import Optional, Iterable
+from typing import Optional, Iterable, List
 
 from copy import copy
 from infi.clickhouse_orm.database import Database
@@ -37,7 +37,7 @@ class QuerySet(InfiQuerySet):
         """
         if not self._db:
             if self._db_alias:
-                self._db = connections[self._db_alias] 
+                self._db = connections[self._db_alias]
             else:
                 self._db = self._model_cls.get_database(for_write=for_write)
 
@@ -70,9 +70,9 @@ class QuerySet(InfiQuerySet):
         self.get_database(for_write=True).insert([instance])
         return instance
 
-    def bulk_create(self, model_instances, batch_size=1000):  # type: (Iterable[InfiModel], int)
+    def bulk_create(self, model_instances, batch_size=1000):  # type: (Iterable[InfiModel], int) -> List[InfiModel]
         self.get_database(for_write=True).insert(model_instances=model_instances, batch_size=batch_size)
-        return model_instances
+        return list(model_instances)
 
 
 class AggregateQuerySet(QuerySet, InfiAggregateQuerySet):

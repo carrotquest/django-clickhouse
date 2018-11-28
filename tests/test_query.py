@@ -25,7 +25,7 @@ class TestQuerySet(TestCase):
     def test_all(self):
         self.db.insert([ClickHouseTestModel(id=i, created_date=datetime.date.today(), value=i) for i in range(1, 4)])
         qs = ClickHouseTestModel.objects.all()
-        print(qs.get_database(for_write=True).db_name)
+
         self.assertIsInstance(qs, QuerySet)
         self.assertEqual(3, qs.count())
 
