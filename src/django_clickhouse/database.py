@@ -3,8 +3,6 @@ from infi.clickhouse_orm.database import Database as InfiDatabase
 from .configuration import config
 from .exceptions import DBAliasError
 
-DEFAULT_DB_ALIAS = 'default'
-
 
 class Database(InfiDatabase):
     def __init__(self, **kwargs):
@@ -30,7 +28,7 @@ class ConnectionProxy:
 
     def get_connection(self, alias):
         if alias is None:
-            alias = DEFAULT_DB_ALIAS
+            alias = config.DEFAULT_DB_ALIAS
 
         if alias not in self._connections:
             if alias not in config.DATABASES:

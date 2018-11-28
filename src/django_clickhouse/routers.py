@@ -50,4 +50,4 @@ class DefaultRouter:
                 if isinstance(hints['model'], six.string_types) else hints['model']
 
         model = lazy_class_import(model)
-        return db_alias in model.write_db_aliases
+        return db_alias in model.migrate_db_aliases

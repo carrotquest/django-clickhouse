@@ -69,6 +69,11 @@ CLICKHOUSE_DATABASES = {
         'db_name': 'test',
         'username': 'default',
         'password': ''
+    },
+    'secondary': {
+        'db_name': 'test_2',
+        'username': 'default',
+        'password': ''
     }
 }
 

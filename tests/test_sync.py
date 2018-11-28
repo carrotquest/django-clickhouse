@@ -1,17 +1,14 @@
 import datetime
 import signal
-
-import os
 from multiprocessing import Process
 from time import sleep
 from unittest import skip, expectedFailure
 
-import random
+import os
 from django.db import connections as django_connections
 from django.db.models import F
-from django.test import TransactionTestCase, override_settings
+from django.test import TransactionTestCase
 
-from django_clickhouse import config
 from django_clickhouse.database import connections
 from django_clickhouse.migrations import migrate_app
 from tests.clickhouse_models import ClickHouseTestModel, ClickHouseCollapseTestModel, ClickHouseMultiTestModel

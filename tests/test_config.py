@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from django_clickhouse import config
+from django_clickhouse.configuration import config
 
 
 class ConfigTest(TestCase):

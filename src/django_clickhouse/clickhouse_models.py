@@ -14,8 +14,9 @@ from infi.clickhouse_orm.models import Model as InfiModel, ModelBase as InfiMode
 from six import with_metaclass
 from statsd.defaults.django import statsd
 
+from .query import QuerySet
 from .configuration import config
-from .database import connections, DEFAULT_DB_ALIAS
+from .database import connections
 from .models import ClickHouseSyncModel
 from .serializers import Django2ClickHouseModelSerializer
 from .utils import lazy_class_import
@@ -31,6 +32,8 @@ class ClickHouseModelMeta(InfiModelBase):
         if res.django_model and res.get_sync_delay():
             res.django_model.register_clickhouse_sync_model(res)
 
+        res.objects = QuerySet(res)
+
         return res
 
 
@@ -41,8 +44,9 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     django_model = None
     django_model_serializer = Django2ClickHouseModelSerializer
 
-    read_db_aliases = (DEFAULT_DB_ALIAS,)
-    write_db_aliases = (DEFAULT_DB_ALIAS,)
+    read_db_aliases = (config.DEFAULT_DB_ALIAS,)
+    write_db_aliases = (config.DEFAULT_DB_ALIAS,)
+    migrate_db_aliases = write_db_aliases
 
     sync_enabled = False
     sync_batch_size = None
@@ -52,18 +56,33 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     sync_lock_timeout = None
 
     @classmethod
-    def get_database(cls, for_write=False):
-        # type: (bool) -> Database
+    def objects_in(cls, database):  # type: (Database) -> QuerySet
+        return QuerySet(cls, database)
+
+    @classmethod
+    def get_database_alias(cls, for_write=False):
+        # type: (bool) -> str
         """
-        Gets database for read or write purposes
+        Gets database alias for read or write purposes
         :param for_write: Boolean flag if database is neede for read or for write
-        :return: infi.clickhouse_orm.Database instance
+        :return: Database alias to use
         """
         db_router = lazy_class_import(config.DATABASE_ROUTER)()
         if for_write:
             return db_router.db_for_write(cls)
         else:
             return db_router.db_for_read(cls)
+
+    @classmethod
+    def get_database(cls, for_write=False):
+        # type: (bool) -> Database
+        """
+        Gets database alias for read or write purposes
+        :param for_write: Boolean flag if database is neede for read or for write
+        :return: infi.clickhouse_orm.Database instance
+        """
+        db_alias = cls.get_database_alias(for_write=for_write)
+        return connections[db_alias]
 
     @classmethod
     def get_django_model_serializer(cls, writable=False):  # type: (bool) -> Django2ClickHouseModelSerializer
