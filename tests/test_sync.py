@@ -1,4 +1,5 @@
 import datetime
+import logging
 from subprocess import Popen
 from time import sleep
 from unittest import expectedFailure
@@ -12,6 +13,8 @@ from django_clickhouse.database import connections
 from django_clickhouse.migrations import migrate_app
 from tests.clickhouse_models import ClickHouseTestModel, ClickHouseCollapseTestModel, ClickHouseMultiTestModel
 from tests.models import TestModel
+
+logger = logging.getLogger('django-clickhouse')
 
 
 class SyncTest(TransactionTestCase):
@@ -97,7 +100,6 @@ class SyncTest(TransactionTestCase):
         self.assertEqual(obj.id, synced_data[0].id)
 
 
-# @skip("This doesn't work due to different threads connection problems")
 class KillTest(TransactionTestCase):
     TEST_TIME = 30
     maxDiff = None
@@ -130,7 +132,7 @@ class KillTest(TransactionTestCase):
 
         if kill:
             sleep(randint(0, 5))
-            print('Killing: %d' % p_sync.pid)
+            logger.debug('django-clickhouse: killing: %d' % p_sync.pid)
             p_sync.kill()
         else:
             p_sync.wait()
@@ -138,13 +140,13 @@ class KillTest(TransactionTestCase):
     def test_kills(self):
         test_script = os.path.join(os.path.dirname(__file__), 'kill_test_sub_process.py')
         p_create = Popen(['python3', test_script, 'create', '--test-time', str(self.TEST_TIME)])
-        # p_update = Popen(['python3', test_script, 'update', '--test-time', str(self.TEST_TIME)])
+        p_update = Popen(['python3', test_script, 'update', '--test-time', str(self.TEST_TIME)])
 
         start = now()
         while (now() - start).total_seconds() < self.TEST_TIME:
             self.sync_iteration()
 
         p_create.wait()
-        # p_update.wait()
+        p_update.wait()
 
         self._check_data()
