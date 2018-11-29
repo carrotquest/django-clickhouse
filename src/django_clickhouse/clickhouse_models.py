@@ -14,10 +14,11 @@ from infi.clickhouse_orm.models import Model as InfiModel, ModelBase as InfiMode
 from six import with_metaclass
 from statsd.defaults.django import statsd
 
-from .query import QuerySet
 from .configuration import config
 from .database import connections
+from .exceptions import RedisLockTimeoutError
 from .models import ClickHouseSyncModel
+from .query import QuerySet
 from .serializers import Django2ClickHouseModelSerializer
 from .utils import lazy_class_import
 
@@ -178,35 +179,38 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         Gets one batch from storage and syncs it.
         :return:
         """
-        statsd_key = "%s.sync.%s.{0}" % (config.STATSD_PREFIX, cls.__name__)
-        with statsd.timer(statsd_key.format('total')):
+        try:
+            statsd_key = "%s.sync.%s.{0}" % (config.STATSD_PREFIX, cls.__name__)
+            with statsd.timer(statsd_key.format('total')):
 
-            storage = cls.get_storage()
-            import_key = cls.get_import_key()
+                storage = cls.get_storage()
+                import_key = cls.get_import_key()
 
-            with statsd.timer(statsd_key.format('pre_sync')):
-                storage.pre_sync(import_key, lock_timeout=cls.get_lock_timeout())
+                with statsd.timer(statsd_key.format('pre_sync')):
+                    storage.pre_sync(import_key, lock_timeout=cls.get_lock_timeout())
 
-            with statsd.timer(statsd_key.format('get_operations')):
-                operations = storage.get_operations(import_key, cls.get_sync_batch_size())
+                with statsd.timer(statsd_key.format('get_operations')):
+                    operations = storage.get_operations(import_key, cls.get_sync_batch_size())
 
-            if operations:
-                with statsd.timer(statsd_key.format('get_sync_objects')):
-                    import_objects = cls.get_sync_objects(operations)
-            else:
-                import_objects = []
+                if operations:
+                    with statsd.timer(statsd_key.format('get_sync_objects')):
+                        import_objects = cls.get_sync_objects(operations)
+                else:
+                    import_objects = []
 
-            if import_objects:
-                with statsd.timer(statsd_key.format('get_insert_batch')):
-                    batch = cls.get_insert_batch(import_objects)
+                if import_objects:
+                    with statsd.timer(statsd_key.format('get_insert_batch')):
+                        batch = cls.get_insert_batch(import_objects)
 
-                with statsd.timer(statsd_key.format('insert')):
-                    cls.insert_batch(batch)
+                    with statsd.timer(statsd_key.format('insert')):
+                        cls.insert_batch(batch)
 
-            with statsd.timer(statsd_key.format('post_sync')):
-                storage.post_sync(import_key)
+                with statsd.timer(statsd_key.format('post_sync')):
+                    storage.post_sync(import_key)
 
-                storage.set_last_sync_time(import_key, now())
+                    storage.set_last_sync_time(import_key, now())
+        except RedisLockTimeoutError:
+            pass  # skip this sync round if lock is acquired by another thread
 
     @classmethod
     def need_sync(cls):  # type: () -> bool
@@ -237,34 +241,38 @@ class ClickHouseMultiModel(ClickHouseModel):
         Gets one batch from storage and syncs it.
         :return:
         """
-        statsd_key = "%s.sync.%s.{0}" % (config.STATSD_PREFIX, cls.__name__)
-        with statsd.timer(statsd_key.format('total')):
+        try:
+            statsd_key = "%s.sync.%s.{0}" % (config.STATSD_PREFIX, cls.__name__)
+            with statsd.timer(statsd_key.format('total')):
 
-            storage = cls.get_storage()
-            import_key = cls.get_import_key()
+                storage = cls.get_storage()
+                import_key = cls.get_import_key()
 
-            with statsd.timer(statsd_key.format('pre_sync')):
-                storage.pre_sync(import_key, lock_timeout=cls.get_lock_timeout())
+                with statsd.timer(statsd_key.format('pre_sync')):
+                    storage.pre_sync(import_key, lock_timeout=cls.get_lock_timeout())
 
-            with statsd.timer(statsd_key.format('get_operations')):
-                operations = storage.get_operations(import_key, cls.get_sync_batch_size())
+                with statsd.timer(statsd_key.format('get_operations')):
+                    operations = storage.get_operations(import_key, cls.get_sync_batch_size())
 
-            if operations:
-                with statsd.timer(statsd_key.format('get_sync_objects')):
-                    import_objects = cls.get_sync_objects(operations)
-            else:
-                import_objects = []
+                if operations:
+                    with statsd.timer(statsd_key.format('get_sync_objects')):
+                        import_objects = cls.get_sync_objects(operations)
+                else:
+                    import_objects = []
 
-            if import_objects:
-                batches = {}
-                with statsd.timer(statsd_key.format('get_insert_batch')):
-                    for model_cls in cls.sub_models:
-                        batches[model_cls] = model_cls.get_insert_batch(import_objects)
+                if import_objects:
+                    batches = {}
+                    with statsd.timer(statsd_key.format('get_insert_batch')):
+                        for model_cls in cls.sub_models:
+                            batches[model_cls] = model_cls.get_insert_batch(import_objects)
 
-                with statsd.timer(statsd_key.format('insert')):
-                    for model_cls, batch in batches.items():
-                        model_cls.insert_batch(batch)
+                    with statsd.timer(statsd_key.format('insert')):
+                        for model_cls, batch in batches.items():
+                            model_cls.insert_batch(batch)
 
-            with statsd.timer(statsd_key.format('post_sync')):
-                storage.post_sync(import_key)
-                storage.set_last_sync_time(import_key, now())
+                with statsd.timer(statsd_key.format('post_sync')):
+                    storage.post_sync(import_key)
+                    storage.set_last_sync_time(import_key, now())
+
+        except RedisLockTimeoutError:
+            pass  # skip this sync round if lock is acquired by another thread

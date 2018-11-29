@@ -7,13 +7,18 @@ Important:
 Storage should be able to restore current importing batch, if something goes wrong.
 """
 import datetime
-from itertools import chain
+import logging
+import os
 from typing import Any, Optional, List, Tuple
 
 from statsd.defaults.django import statsd
 
+from django_clickhouse.redis import redis_zadd
+from django_clickhouse.utils import check_pid
 from .configuration import config
-from .exceptions import ConfigurationError
+from .exceptions import ConfigurationError, RedisLockTimeoutError
+
+logger = logging.getLogger('django-clickhouse')
 
 
 class Storage:
@@ -60,6 +65,17 @@ class Storage:
         """
         key = "%s.sync.%s.queue" % (config.STATSD_PREFIX, import_key)
         statsd.gauge(key, -batch_size, delta=True)
+        logger.debug('Removed %d items (%s) from storage' % (batch_size, import_key))
+
+    def operations_count(self, import_key, **kwargs):
+        # type: (str, **dict) -> int
+        """
+        Returns sync queue size
+        :param import_key: A key, returned by ClickHouseModel.get_import_key() method
+        :param kwargs: Storage dependant arguments
+        :return: Number of records in queue
+        """
+        raise NotImplemented()
 
     def get_operations(self, import_key, count, **kwargs):
         # type: (str, int, **dict) -> List[Tuple[str, str]]
@@ -98,6 +114,7 @@ class Storage:
 
         statsd_key = "%s.sync.%s.queue" % (config.STATSD_PREFIX, import_key)
         statsd.gauge(statsd_key, len(pks), delta=True)
+        logger.debug('Registered %d items (%s) to storage' % (len(pks), import_key))
 
         return self.register_operations(import_key, operation, *pks)
 
@@ -133,6 +150,7 @@ class RedisStorage(Storage):
     REDIS_KEY_OPS_TEMPLATE = 'clickhouse_sync:operations:{import_key}'
     REDIS_KEY_TS_TEMPLATE = 'clickhouse_sync:timstamp:{import_key}'
     REDIS_KEY_LOCK = 'clickhouse_sync:lock:{import_key}'
+    REDIS_KEY_LOCK_PID = 'clickhouse_sync:lock_pid:{import_key}'
     REDIS_KEY_LAST_SYNC_TS = 'clickhouse_sync:last_sync:{import_key}'
 
     def __init__(self):
@@ -148,10 +166,12 @@ class RedisStorage(Storage):
         key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
         score = datetime.datetime.now().timestamp()
 
-        items = chain(*((score, '%s:%s' % (operation, str(pk))) for pk in pks))
+        items = {'%s:%s' % (operation, str(pk)): score for pk in pks}
+        redis_zadd(self._redis, key, items)
 
-        # key, score1, value1, score2, value2, ...
-        self._redis.zadd(key, *items)
+    def operations_count(self, import_key, **kwargs):
+        ops_key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
+        return self._redis.zcard(ops_key)
 
     def get_operations(self, import_key, count, **kwargs):
         ops_key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
@@ -173,7 +193,8 @@ class RedisStorage(Storage):
             from .redis import RedisLock
             lock_key = self.REDIS_KEY_LOCK.format(import_key=import_key)
             lock_timeout = kwargs.get('lock_timeout', config.SYNC_DELAY * 10)
-            self._lock = RedisLock(self._redis, lock_key, timeout=lock_timeout, blocking_timeout=0)
+            self._lock = RedisLock(self._redis, lock_key, timeout=lock_timeout, blocking_timeout=0.1,
+                                   thread_local=False)
 
         return self._lock
 
@@ -181,7 +202,20 @@ class RedisStorage(Storage):
         # Block process to be single threaded. Default sync delay is 10 * default sync delay.
         # It can be changed for model, by passing `lock_timeout` argument to pre_sync
         lock = self.get_lock(import_key, **kwargs)
-        lock.acquire()
+        lock_pid_key = self.REDIS_KEY_LOCK_PID.format(import_key=import_key)
+        try:
+            lock.acquire()
+            self._redis.set(lock_pid_key, os.getpid())
+        except RedisLockTimeoutError:
+            # Lock is busy. But If the process has been killed, I don't want to wait any more.
+            # Let's check if pid exists
+            pid = int(self._redis.get(lock_pid_key))
+            if not check_pid(pid):
+                logger.debug('Hard releasing lock "%s" locked by pid %d' % (import_key, pid))
+                lock.hard_release()
+                self.pre_sync(import_key, **kwargs)
+            else:
+                raise
 
     def post_sync(self, import_key, **kwargs):
         ts_key = self.REDIS_KEY_TS_TEMPLATE.format(import_key=import_key)
@@ -197,7 +231,7 @@ class RedisStorage(Storage):
         self.post_batch_removed(import_key, batch_size)
 
         # unblock lock after sync completed
-        self._lock.release()
+        self.get_lock(import_key, **kwargs).release()
 
     def flush(self):
         key_tpls = [

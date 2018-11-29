@@ -1,13 +1,15 @@
 import datetime
 import signal
 from multiprocessing import Process
+from subprocess import Popen
 from time import sleep
 from unittest import skip, expectedFailure
 
 import os
-from django.db import connections as django_connections
 from django.db.models import F
 from django.test import TransactionTestCase
+from django.utils.timezone import now
+from random import randint
 
 from django_clickhouse.database import connections
 from django_clickhouse.migrations import migrate_app
@@ -98,80 +100,48 @@ class SyncTest(TransactionTestCase):
         self.assertEqual(obj.id, synced_data[0].id)
 
 
-@skip("This doesn't work due to different threads connection problems")
+# @skip("This doesn't work due to different threads connection problems")
 class KillTest(TransactionTestCase):
     TEST_TIME = 30
-    start = datetime.datetime.now()
+    maxDiff = None
 
     def setUp(self):
         ClickHouseTestModel.get_storage().flush()
-
-    @staticmethod
-    def _create_process(count=1000, test_time=60, period=1):
-        for iteration in range(test_time):
-            TestModel.objects.using('create').bulk_create([
-                TestModel(created_date='2018-01-01', value=iteration * count + i) for i in range(count)])
-            django_connections['create'].close()
-            sleep(period)
-
-    @staticmethod
-    def _update_process(count=1000, test_time=60, period=1):
-        for iteration in range(test_time):
-            TestModel.objects.using('update').filter(id__gte=iteration * count).annotate(idmod10=F('id') % 10). \
-                filter(idmod10=0).update(value=-1)
-            django_connections['update'].close()
-            sleep(period)
-
-    @staticmethod
-    def _delete_process(count=1000, test_time=60, period=1):
-        for iteration in range(test_time):
-            TestModel.objects.using('delete').filter(id__gte=iteration * count).annotate(idmod10=F('id') % 10). \
-                filter(idmod10=1).delete()
-            django_connections['delete'].close()
-            sleep(period)
-
-    @classmethod
-    def _sync_process(cls, period=1):
-        while (datetime.datetime.now() - cls.start).total_seconds() < cls.TEST_TIME:
-            ClickHouseCollapseTestModel.sync_batch_from_storage()
-            sleep(period)
-
-    def _kill_process(self, p):
-        # https://stackoverflow.com/questions/47553120/kill-a-multiprocessing-pool-with-sigkill-instead-of-sigterm-i-think
-        os.kill(p.pid, signal.SIGKILL)
-        p.terminate()
+        connections['default'].drop_database()
+        connections['default'].create_database()
+        migrate_app('tests', 'default')
 
     def _check_data(self):
-        ClickHouseCollapseTestModel.sync_batch_from_storage()
+        # Sync all data that is not synced
+        while ClickHouseCollapseTestModel.get_storage().operations_count(ClickHouseCollapseTestModel.get_import_key()):
+            ClickHouseCollapseTestModel.sync_batch_from_storage()
 
         ch_data = list(connections['default'].select('SELECT * FROM $table FINAL ORDER BY id',
                                                      model_class=ClickHouseCollapseTestModel))
         pg_data = list(TestModel.objects.all().order_by('id'))
 
         self.assertEqual(len(pg_data), len(ch_data))
-        serizlier = ClickHouseCollapseTestModel.get_django_model_serializer()
-        self.assertListEqual(ch_data, [serizlier.serialize(item) for item in pg_data])
+        serializer = ClickHouseCollapseTestModel.get_django_model_serializer()
+        self.assertListEqual(ch_data, [serializer.serialize(item) for item in pg_data])
+
+    @classmethod
+    def sync_iteration(cls):
+        test_script = os.path.join(os.path.dirname(__file__), 'kill_test_sub_process.py')
+        p_sync = Popen(['python3', test_script, 'sync', '--test-time', str(cls.TEST_TIME)])
+        sleep(randint(0, 5))
+        print('Killing: %d' % p_sync.pid)
+        p_sync.kill()
 
     def test_kills(self):
-        p_create = Process(target=self._create_process, kwargs={'test_time': 5})
-        p_update = Process(target=self._update_process, kwargs={'test_time': 5})
-        p_delete = Process(target=self._delete_process, kwargs={'test_time': 5})
-        p_sync = Process(target=self._sync_process)
+        test_script = os.path.join(os.path.dirname(__file__), 'kill_test_sub_process.py')
+        p_create = Popen(['python3', test_script, 'create', '--test-time', str(self.TEST_TIME)])
+        p_update = Popen(['python3', test_script, 'update', '--test-time', str(self.TEST_TIME)])
 
-        self.start = datetime.datetime.now()
-        p_create.start()
-        p_update.start()
-        p_delete.start()
-        p_sync.start()
+        start = now()
+        while (now() - start).total_seconds() < self.TEST_TIME:
+            self.sync_iteration()
 
-        # while (datetime.datetime.now() - start).total_seconds() < self.TEST_TIME:
-        #     self._kill_process(p_sync)
-        #     p_sync.start()
-        #     sleep(random.randint(0, 5))
+        p_create.wait()
+        p_update.wait()
 
-        p_create.join()
-        p_update.join()
-        p_delete.join()
-        p_sync.join()
-
-        # self._check_data()
+        self._check_data()

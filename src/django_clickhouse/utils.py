@@ -1,4 +1,5 @@
 import datetime
+import os
 from itertools import chain
 from typing import Union, Any, Optional, TypeVar, Set, Dict, Iterable
 
@@ -121,3 +122,15 @@ def model_to_dict(instance, fields=None, exclude_fields=None):
             data[name] = val
 
     return data
+
+
+def check_pid(pid):
+    """
+    Check For the existence of a unix pid.
+    """
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    else:
+        return True

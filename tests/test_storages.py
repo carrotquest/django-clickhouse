@@ -62,3 +62,10 @@ class StorageTest(TestCase):
         dt = datetime.datetime.now()
         self.storage.set_last_sync_time('test', dt)
         self.assertEqual(dt, self.storage.get_last_sync_time('test'))
+
+    def test_operations_count(self):
+        self.storage.register_operations_wrapped('test', 'insert', 100500)
+        self.storage.register_operations_wrapped('test', 'insert', 100501)
+        self.assertEqual(2, self.storage.operations_count('test'))
+        self.storage.register_operations_wrapped('test', 'insert', 100502)
+        self.assertEqual(3, self.storage.operations_count('test'))
