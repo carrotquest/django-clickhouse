@@ -1,12 +1,9 @@
 import datetime
-import signal
-from multiprocessing import Process
 from subprocess import Popen
 from time import sleep
-from unittest import skip, expectedFailure
+from unittest import expectedFailure
 
 import os
-from django.db.models import F
 from django.test import TransactionTestCase
 from django.utils.timezone import now
 from random import randint
@@ -113,8 +110,10 @@ class KillTest(TransactionTestCase):
 
     def _check_data(self):
         # Sync all data that is not synced
+        # Data is expected to be in test_db, not default. So we need to call subprocess
+        # in order everything works correctly
         while ClickHouseCollapseTestModel.get_storage().operations_count(ClickHouseCollapseTestModel.get_import_key()):
-            ClickHouseCollapseTestModel.sync_batch_from_storage()
+            self.sync_iteration(False)
 
         ch_data = list(connections['default'].select('SELECT * FROM $table FINAL ORDER BY id',
                                                      model_class=ClickHouseCollapseTestModel))
@@ -125,23 +124,27 @@ class KillTest(TransactionTestCase):
         self.assertListEqual(ch_data, [serializer.serialize(item) for item in pg_data])
 
     @classmethod
-    def sync_iteration(cls):
+    def sync_iteration(cls, kill=True):
         test_script = os.path.join(os.path.dirname(__file__), 'kill_test_sub_process.py')
         p_sync = Popen(['python3', test_script, 'sync', '--test-time', str(cls.TEST_TIME)])
-        sleep(randint(0, 5))
-        print('Killing: %d' % p_sync.pid)
-        p_sync.kill()
+
+        if kill:
+            sleep(randint(0, 5))
+            print('Killing: %d' % p_sync.pid)
+            p_sync.kill()
+        else:
+            p_sync.wait()
 
     def test_kills(self):
         test_script = os.path.join(os.path.dirname(__file__), 'kill_test_sub_process.py')
         p_create = Popen(['python3', test_script, 'create', '--test-time', str(self.TEST_TIME)])
-        p_update = Popen(['python3', test_script, 'update', '--test-time', str(self.TEST_TIME)])
+        # p_update = Popen(['python3', test_script, 'update', '--test-time', str(self.TEST_TIME)])
 
         start = now()
         while (now() - start).total_seconds() < self.TEST_TIME:
             self.sync_iteration()
 
         p_create.wait()
-        p_update.wait()
+        # p_update.wait()
 
         self._check_data()

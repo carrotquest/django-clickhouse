@@ -65,7 +65,6 @@ class Storage:
         """
         key = "%s.sync.%s.queue" % (config.STATSD_PREFIX, import_key)
         statsd.gauge(key, -batch_size, delta=True)
-        logger.debug('Removed %d items (%s) from storage' % (batch_size, import_key))
 
     def operations_count(self, import_key, **kwargs):
         # type: (str, **dict) -> int
@@ -114,7 +113,7 @@ class Storage:
 
         statsd_key = "%s.sync.%s.queue" % (config.STATSD_PREFIX, import_key)
         statsd.gauge(statsd_key, len(pks), delta=True)
-        logger.debug('Registered %d items (%s) to storage' % (len(pks), import_key))
+        logger.debug('django-clickhouse: registered %d items (%s) to storage' % (len(pks), import_key))
 
         return self.register_operations(import_key, operation, *pks)
 
@@ -209,9 +208,10 @@ class RedisStorage(Storage):
         except RedisLockTimeoutError:
             # Lock is busy. But If the process has been killed, I don't want to wait any more.
             # Let's check if pid exists
-            pid = int(self._redis.get(lock_pid_key))
-            if not check_pid(pid):
-                logger.debug('Hard releasing lock "%s" locked by pid %d' % (import_key, pid))
+            pid = int(self._redis.get(lock_pid_key) or 0)
+            if pid and not check_pid(pid):
+                logger.warning('django-clickhouse: hard releasing lock "%s" locked by pid %d' % (import_key, pid))
+                self._redis.delete(lock_pid_key)
                 lock.hard_release()
                 self.pre_sync(import_key, **kwargs)
             else:
@@ -231,7 +231,11 @@ class RedisStorage(Storage):
         self.post_batch_removed(import_key, batch_size)
 
         # unblock lock after sync completed
+        lock_pid_key = self.REDIS_KEY_LOCK_PID.format(import_key=import_key)
+        self._redis.delete(lock_pid_key)
         self.get_lock(import_key, **kwargs).release()
+
+        logger.info('django-clickhouse: synced %d items (key: %s)' % (batch_size, import_key))
 
     def flush(self):
         key_tpls = [

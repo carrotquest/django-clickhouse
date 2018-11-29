@@ -20,6 +20,7 @@ class ClickHouseTestModel(ClickHouseModel):
 class ClickHouseCollapseTestModel(ClickHouseModel):
     django_model = TestModel
     sync_delay = 2
+    sync_enabled = True
 
     id = fields.Int32Field()
     created_date = fields.DateField()

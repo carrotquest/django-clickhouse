@@ -26,16 +26,16 @@ class RedisLock:
         self.lock.release()
 
     def acquire(self):
-        logger.debug('Acquiring lock "%s" with pid %d' % (self.lock.name, os.getpid()))
+        logger.debug('django-clickhouse: acquiring lock "%s" with pid %d' % (self.lock.name, os.getpid()))
         if self.lock.acquire():
-            logger.debug('Acquired lock "%s" with pid %d' % (self.lock.name, os.getpid()))
+            logger.debug('django-clickhouse:  acquired lock "%s" with pid %d' % (self.lock.name, os.getpid()))
             return self
         else:
-            logger.debug('Timeout lock "%s" with pid %d' % (self.lock.name, os.getpid()))
+            logger.warning('django-clickhouse: timeout lock "%s" with pid %d' % (self.lock.name, os.getpid()))
             raise RedisLockTimeoutError()
 
     def release(self):
-        logger.debug('Releasing lock "%s" with pid %d' % (self.lock.name, os.getpid()))
+        logger.debug('django-clickhouse: releasing lock "%s" with pid %d' % (self.lock.name, os.getpid()))
         self.lock.release()
 
     def hard_release(self) -> bool:
@@ -43,7 +43,7 @@ class RedisLock:
         Drops the lock, not looking if it is acquired by anyone.
         :return: Boolean - if lock has been acquired before releasing or not
         """
-        logger.debug('Hard releasing lock "%s" with pid %d' % (self.lock.name, os.getpid()))
+        logger.warning('django-clickhouse: hard releasing lock "%s" with pid %d' % (self.lock.name, os.getpid()))
         return bool(self.lock.redis.delete(self.lock.name))
 
 
