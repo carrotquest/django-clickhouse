@@ -5,7 +5,6 @@ from typing import List, TypeVar, Type
 
 from django.db.models import Model as DjangoModel
 from infi.clickhouse_orm import engines as infi_engines
-from infi.clickhouse_orm.database import Database
 from infi.clickhouse_orm.models import Model as InfiModel
 from statsd.defaults.django import statsd
 
@@ -98,7 +97,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
 
     def set_obj_sign(self, obj, sign):  # type: (InfiModel, int) -> None
         """
-        Sets objects sign. By default gets attribute nmae from sign_col
+        Sets objects sign. By default gets attribute name from sign_col
         :return: None
         """
         setattr(obj, self.sign_col, sign)

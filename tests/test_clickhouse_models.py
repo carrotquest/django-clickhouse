@@ -12,6 +12,7 @@ class ClickHouseModelTest(TestCase):
 
     def test_need_sync(self):
         # sync is disabled by default
+        ClickHouseTestModel.sync_enabled = False
         self.assertFalse(ClickHouseTestModel.need_sync())
 
         # There were no syncs. So it should be done

@@ -1,10 +1,10 @@
 import datetime
-from unittest import TestCase
 
 import pytz
+from django.test import TestCase
 
 from django_clickhouse.models import ClickHouseSyncModel
-from django_clickhouse.utils import get_tz_offset, format_datetime, lazy_class_import
+from django_clickhouse.utils import get_tz_offset, format_datetime, lazy_class_import, int_ranges
 
 
 class GetTZOffsetTest(TestCase):
@@ -54,3 +54,16 @@ class TestLazyClassImport(TestCase):
 
     def test_cls(self):
         self.assertEqual(ClickHouseSyncModel, lazy_class_import(ClickHouseSyncModel))
+
+
+class TestIntRanges(TestCase):
+    def test_simple(self):
+        self.assertListEqual([(1, 3), (5, 6), (8, 10)],
+                             list(int_ranges([1, 2, 3, 5, 6, 8, 9, 10])))
+
+    def test_empty(self):
+        self.assertListEqual([], list(int_ranges([])))
+
+    def test_bounds(self):
+        self.assertListEqual([(1, 1), (5, 6), (10, 10)],
+                             list(int_ranges([1, 5, 6, 10])))

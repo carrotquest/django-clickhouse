@@ -8,6 +8,7 @@ from tests.models import TestModel
 class ClickHouseTestModel(ClickHouseModel):
     django_model = TestModel
     sync_delay = 2
+    sync_enabled = True
 
     id = fields.Int32Field()
     created_date = fields.DateField()
@@ -33,3 +34,5 @@ class ClickHouseCollapseTestModel(ClickHouseModel):
 class ClickHouseMultiTestModel(ClickHouseMultiModel):
     django_model = TestModel
     sub_models = [ClickHouseTestModel, ClickHouseCollapseTestModel]
+    sync_delay = 2
+    sync_enabled = True

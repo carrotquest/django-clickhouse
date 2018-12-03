@@ -113,7 +113,8 @@ class Storage:
 
         statsd_key = "%s.sync.%s.queue" % (config.STATSD_PREFIX, import_key)
         statsd.gauge(statsd_key, len(pks), delta=True)
-        logger.debug('django-clickhouse: registered %d items (%s) to storage' % (len(pks), import_key))
+        logger.debug('django-clickhouse: registered %s on %d items (%s) to storage'
+                     % (operation, len(pks), import_key))
 
         return self.register_operations(import_key, operation, *pks)
 
@@ -147,7 +148,7 @@ class RedisStorage(Storage):
         2) CLICKHOUSE_REDIS_CONFIG parameter defined. This should be a dict of kwargs for redis.StrictRedis(**kwargs).
     """
     REDIS_KEY_OPS_TEMPLATE = 'clickhouse_sync:operations:{import_key}'
-    REDIS_KEY_TS_TEMPLATE = 'clickhouse_sync:timstamp:{import_key}'
+    REDIS_KEY_RANK_TEMPLATE = 'clickhouse_sync:timstamp:{import_key}'
     REDIS_KEY_LOCK = 'clickhouse_sync:lock:{import_key}'
     REDIS_KEY_LOCK_PID = 'clickhouse_sync:lock_pid:{import_key}'
     REDIS_KEY_LAST_SYNC_TS = 'clickhouse_sync:last_sync:{import_key}'
@@ -180,8 +181,8 @@ class RedisStorage(Storage):
         if res:
             ops, scores = zip(*res)
 
-            ts_key = self.REDIS_KEY_TS_TEMPLATE.format(import_key=import_key)
-            self._redis.set(ts_key, max(scores))
+            rank_key = self.REDIS_KEY_RANK_TEMPLATE.format(import_key=import_key)
+            self._redis.set(rank_key, len(ops) - 1)
 
             return list(tuple(op.decode().split(':')) for op in ops)
         else:
@@ -210,7 +211,8 @@ class RedisStorage(Storage):
             # Let's check if pid exists
             pid = int(self._redis.get(lock_pid_key) or 0)
             if pid and not check_pid(pid):
-                logger.warning('django-clickhouse: hard releasing lock "%s" locked by pid %d' % (import_key, pid))
+                logger.warning('django-clickhouse: hard releasing lock "%s" locked by pid %d (process is dead)'
+                               % (import_key, pid))
                 self._redis.delete(lock_pid_key)
                 lock.hard_release()
                 self.pre_sync(import_key, **kwargs)
@@ -218,12 +220,12 @@ class RedisStorage(Storage):
                 raise
 
     def post_sync(self, import_key, **kwargs):
-        ts_key = self.REDIS_KEY_TS_TEMPLATE.format(import_key=import_key)
+        rank_key = self.REDIS_KEY_RANK_TEMPLATE.format(import_key=import_key)
         ops_key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
 
-        score = self._redis.get(ts_key)
-        if score:
-            res = self._redis.zremrangebyscore(ops_key, '-inf', float(score))
+        top_rank = self._redis.get(rank_key)
+        if top_rank:
+            res = self._redis.zremrangebyrank(ops_key, 0, top_rank)
             batch_size = int(res)
         else:
             batch_size = 0
@@ -239,7 +241,7 @@ class RedisStorage(Storage):
 
     def flush(self):
         key_tpls = [
-            self.REDIS_KEY_TS_TEMPLATE.format(import_key='*'),
+            self.REDIS_KEY_RANK_TEMPLATE.format(import_key='*'),
             self.REDIS_KEY_OPS_TEMPLATE.format(import_key='*'),
             self.REDIS_KEY_LOCK.format(import_key='*'),
             self.REDIS_KEY_LAST_SYNC_TS.format(import_key='*')

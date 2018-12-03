@@ -1,7 +1,7 @@
 import datetime
 import os
 from itertools import chain
-from typing import Union, Any, Optional, TypeVar, Set, Dict, Iterable
+from typing import Union, Any, Optional, TypeVar, Set, Dict, Iterable, Tuple, Iterator
 
 import pytz
 import six
@@ -134,3 +134,27 @@ def check_pid(pid):
         return False
     else:
         return True
+
+
+def int_ranges(items: Iterable[int]) -> Iterator[Tuple[int, int]]:
+    """
+    Finds continuous intervals in integer iterable.
+    :param items: Items to search in
+    :return: Iterator over Tuple[start, end]
+    """
+    interval_start = None
+    prev_item = None
+    for item in sorted(items):
+        if prev_item is None:
+            interval_start = prev_item = item
+        elif prev_item + 1 == item:
+            prev_item = item
+        else:
+            interval = interval_start, prev_item
+            interval_start = prev_item = item
+            yield interval
+
+    if interval_start is None:
+        raise StopIteration()
+    else:
+        yield interval_start, prev_item
