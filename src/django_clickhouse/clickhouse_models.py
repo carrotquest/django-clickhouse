@@ -56,6 +56,9 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     sync_database_alias = None
     sync_lock_timeout = None
 
+    # This attribute is initialized in metaclass, as it must get model class as a parameter
+    objects = None  # type: QuerySet
+
     @classmethod
     def objects_in(cls, database):  # type: (Database) -> QuerySet
         return QuerySet(cls, database)

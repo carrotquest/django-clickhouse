@@ -13,7 +13,7 @@ class QuerySet(InfiQuerySet):
     Basic QuerySet to use
     """
 
-    def __init__(self, model_cls, database=None):  # type: (InfiModel, Optional[Database]) -> None
+    def __init__(self, model_cls, database=None):  # type: (Type[InfiModel], Optional[Database]) -> None
         super(QuerySet, self).__init__(model_cls, database)
         self._db_alias = None
 
