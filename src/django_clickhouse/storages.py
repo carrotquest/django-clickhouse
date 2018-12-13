@@ -223,7 +223,7 @@ class RedisStorage(Storage):
         rank_key = self.REDIS_KEY_RANK_TEMPLATE.format(import_key=import_key)
         ops_key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
 
-        top_rank = self._redis.get(rank_key)
+        top_rank = int(self._redis.get(rank_key))
         if top_rank:
             res = self._redis.zremrangebyrank(ops_key, 0, top_rank)
             batch_size = int(res)
