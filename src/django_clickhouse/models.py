@@ -175,8 +175,7 @@ class ClickHouseSyncModel(DjangoModel):
 
         def _on_commit():
             for model_cls in cls.get_clickhouse_sync_models():
-                if model_cls.sync_enabled:
-                    storage.register_operations_wrapped(model_cls.get_import_key(), operation, *model_pks)
+                storage.register_operations_wrapped(model_cls.get_import_key(), operation, *model_pks)
 
         if len(model_pks) > 0:
             storage = cls.get_clickhouse_storage()
