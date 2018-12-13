@@ -30,7 +30,7 @@ class ClickHouseModelMeta(InfiModelBase):
         if res.django_model and not issubclass(res.django_model, ClickHouseSyncModel):
             raise TypeError('django_model must be ClickHouseSyncModel subclass')
 
-        if res.django_model and res.get_sync_delay():
+        if res.django_model and res.sync_enabled:
             res.django_model.register_clickhouse_sync_model(res)
 
         res.objects = QuerySet(res)
