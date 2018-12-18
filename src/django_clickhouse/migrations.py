@@ -59,7 +59,7 @@ def migrate_app(app_label, db_alias, up_to=9999, database=None):
         unapplied_migrations = set(modules.keys()) - applied_migrations
 
         for name in sorted(unapplied_migrations):
-            logger.info('Applying ClickHouse migration %s for app %s in database %s' % (name, app_label, db_alias))
+            print('Applying ClickHouse migration %s for app %s in database %s' % (name, app_label, db_alias))
             migration = modules[name].Migration()
             migration.apply(db_alias, database=database)
 
