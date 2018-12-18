@@ -50,7 +50,7 @@ def migrate_app(app_label, db_alias, up_to=9999, database=None):
     :return: None
     """
     # Can't migrate such connection, just skip it
-    if config.DATABASES[db_alias].readonly:
+    if config.DATABASES[db_alias].get('readonly', False):
         return
 
     migrations_package = "%s.%s" % (app_label, config.MIGRATIONS_PACKAGE)
