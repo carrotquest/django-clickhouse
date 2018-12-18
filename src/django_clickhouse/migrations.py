@@ -49,10 +49,14 @@ def migrate_app(app_label, db_alias, up_to=9999, database=None):
     :param database: Sometimes I want to pass db object directly for testing purposes
     :return: None
     """
-    database = database or connections[db_alias]
+    # Can't migrate such connection, just skip it
+    if config.DATABASES[db_alias].readonly:
+        return
+
     migrations_package = "%s.%s" % (app_label, config.MIGRATIONS_PACKAGE)
 
     if module_exists(migrations_package):
+        database = database or connections[db_alias]
         applied_migrations = database._get_applied_migrations(migrations_package)
         modules = import_submodules(migrations_package)
 
