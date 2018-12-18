@@ -24,19 +24,7 @@ class Database(InfiDatabase):
                                   ' Use django_clickhouse.migrations module instead.')
 
     def _get_applied_migrations(self, migrations_package_name):
-        # I don't want to create any tables here, so I changed method to work in without table
-        if not self.db_exists:
-            return []
-
-        query = "SELECT module_name from $table WHERE package_name = '%s'" % migrations_package_name
-        query = self._substitute(query, MigrationHistory)
-        try:
-            return set(obj.module_name for obj in self.select(query))
-        except ServerError as ex:
-            # Database doesn't exist or table doesn't exist
-            if ex.code in {81, 60}:
-                return set()
-            raise ex
+        raise NotImplementedError("This method is not supported by django_clickhouse.")
 
 
 class ConnectionProxy:

@@ -1,5 +1,5 @@
 from django.test import TestCase, override_settings
-from infi.clickhouse_orm.migrations import MigrationHistory
+from django_clickhouse.migrations import MigrationHistory
 
 from django_clickhouse.database import connections
 from django_clickhouse.migrations import migrate_app

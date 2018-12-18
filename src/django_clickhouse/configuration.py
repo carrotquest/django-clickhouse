@@ -20,6 +20,7 @@ DEFAULTS = {
     'DATABASE_ROUTER': 'django_clickhouse.routers.DefaultRouter',
     'STATSD_PREFIX': 'clickhouse',
     'MIGRATIONS_PACKAGE': 'clickhouse_migrations',
+    'MIGRATION_HISTORY_MODEL': 'django_clickhouse.migrations.MigrationHistory',
     'MIGRATE_WITH_DEFAULT_DB': True,
     'CELERY_QUEUE': 'celery',
     'DEFAULT_DB_ALIAS': 'default'
