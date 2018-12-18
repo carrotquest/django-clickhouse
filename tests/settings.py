@@ -58,6 +58,18 @@ CLICKHOUSE_DATABASES = {
         'db_name': 'test_2',
         'username': 'default',
         'password': ''
+    },
+    'no_migrate': {
+        'db_name': 'test_3',
+        'username': 'default',
+        'password': '',
+        'migrate': False
+    },
+    'readonly': {
+        'db_name': 'test_3',
+        'username': 'default',
+        'password': '',
+        'readonly': True
     }
 }
 

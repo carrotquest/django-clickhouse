@@ -53,13 +53,17 @@ def migrate_app(app_label, db_alias, up_to=9999, database=None):
     if config.DATABASES[db_alias].get('readonly', False):
         return
 
+    # Ignore force not migrated databases
+    if not config.DATABASES[db_alias].get('migrate', True):
+        return
+
     migrations_package = "%s.%s" % (app_label, config.MIGRATIONS_PACKAGE)
 
     if module_exists(migrations_package):
         database = database or connections[db_alias]
+
         applied_migrations = database._get_applied_migrations(migrations_package)
         modules = import_submodules(migrations_package)
-
         unapplied_migrations = set(modules.keys()) - applied_migrations
 
         for name in sorted(unapplied_migrations):
@@ -67,6 +71,8 @@ def migrate_app(app_label, db_alias, up_to=9999, database=None):
             migration = modules[name].Migration()
             migration.apply(db_alias, database=database)
 
+            # Ensure that table for migration storing is created
+            database.create_table(MigrationHistory)
             database.insert([
                 MigrationHistory(package_name=migrations_package, module_name=name, applied=datetime.date.today())
             ])

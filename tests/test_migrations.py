@@ -45,3 +45,11 @@ class MigrateAppTest(TestCase):
     def test_router_not_allowed(self):
         migrate_app('tests', 'default')
         self.assertFalse(table_exists(self.db, ClickHouseTestModel))
+
+    def test_no_migrate_connections(self):
+        migrate_app('tests', 'no_migrate')
+        self.assertFalse(table_exists(connections['no_migrate'], ClickHouseTestModel))
+
+    def test_readonly_connections(self):
+        migrate_app('tests', 'readonly')
+        self.assertFalse(table_exists(connections['readonly'], ClickHouseTestModel))
