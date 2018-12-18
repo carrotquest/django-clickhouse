@@ -8,7 +8,7 @@ from tests.clickhouse_models import ClickHouseTestModel
 
 
 class NoMigrateRouter(DefaultRouter):
-    def allow_migrate(self, db_alias, app_label, model=None, **hints):
+    def allow_migrate(self, db_alias, app_label, operation, model=None, **hints):
         return False
 
 

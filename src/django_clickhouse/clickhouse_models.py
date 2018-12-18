@@ -47,7 +47,8 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
 
     read_db_aliases = (config.DEFAULT_DB_ALIAS,)
     write_db_aliases = (config.DEFAULT_DB_ALIAS,)
-    migrate_db_aliases = write_db_aliases
+    migrate_replicated_db_aliases = (config.DEFAULT_DB_ALIAS,)
+    migrate_non_replicated_db_aliases = (config.DEFAULT_DB_ALIAS,)
 
     sync_enabled = False
     sync_batch_size = None

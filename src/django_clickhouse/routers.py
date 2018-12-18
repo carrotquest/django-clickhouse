@@ -5,6 +5,7 @@ from typing import Optional
 
 import random
 import six
+from infi.clickhouse_orm.migrations import Operation, DropTable, CreateTable
 
 from .clickhouse_models import ClickHouseModel
 from .configuration import config
@@ -32,12 +33,13 @@ class DefaultRouter:
         """
         return random.choice(model.write_db_aliases)
 
-    def allow_migrate(self, db_alias, app_label, model=None, **hints):
-        # type: (str, str, Optional[ClickHouseModel], **dict) -> bool
+    def allow_migrate(self, db_alias, app_label, operation, model=None, **hints):
+        # type: (str, str, Operation, Optional[ClickHouseModel], **dict) -> bool
         """
         Checks if migration can be applied to given database
         :param db_alias: Database alias to check
         :param app_label: App from which migration is got
+        :param operation: Operation object to perform
         :param model: Model migration is applied to
         :param hints: Hints to make correct decision
         :return: boolean
@@ -50,4 +52,8 @@ class DefaultRouter:
                 if isinstance(hints['model'], six.string_types) else hints['model']
 
         model = lazy_class_import(model)
-        return db_alias in model.migrate_db_aliases
+
+        if operation.__class__ not in {CreateTable, DropTable}:
+            return db_alias in model.migrate_replicated_db_aliases
+        else:
+            return db_alias in model.migrate_non_replicated_db_aliases

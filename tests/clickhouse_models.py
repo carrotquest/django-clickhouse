@@ -15,7 +15,8 @@ class ClickHouseTestModel(ClickHouseModel):
     value = fields.Int32Field()
 
     engine = ReplacingMergeTree('created_date', ('id',))
-    migrate_db_aliases = ('default', 'secondary')
+    migrate_replicated_db_aliases = ('default', 'secondary')
+    migrate_non_replicated_db_aliases = ('default', 'secondary')
 
 
 class ClickHouseCollapseTestModel(ClickHouseModel):
