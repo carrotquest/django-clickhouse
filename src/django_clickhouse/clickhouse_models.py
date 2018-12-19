@@ -231,7 +231,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         if last_sync_time is None:
             return True
 
-        return (last_sync_time - datetime.datetime.now()).total_seconds() >= cls.get_sync_delay()
+        return (datetime.datetime.now() - last_sync_time).total_seconds() >= cls.get_sync_delay()
 
 
 class ClickHouseMultiModel(ClickHouseModel):

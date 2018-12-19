@@ -26,5 +26,5 @@ class ClickHouseModelTest(TestCase):
         # Time has passed
         sync_delay = ClickHouseTestModel.get_sync_delay()
         self.storage.set_last_sync_time(ClickHouseTestModel.get_import_key(),
-                                        datetime.datetime.now() - datetime.timedelta(seconds=sync_delay))
-        self.assertFalse(ClickHouseTestModel.need_sync())
+                                        datetime.datetime.now() - datetime.timedelta(seconds=sync_delay + 1))
+        self.assertTrue(ClickHouseTestModel.need_sync())
