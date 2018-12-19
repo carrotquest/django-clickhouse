@@ -1,3 +1,5 @@
+import importlib
+
 from celery import shared_task
 from django.conf import settings
 from infi.clickhouse_orm.utils import import_submodules
@@ -28,8 +30,11 @@ def clickhouse_auto_sync():
     """
     # Import all model modules
     for app in settings.INSTALLED_APPS:
+        package_name = "%s.%s" % (app, config.MODELS_MODULE)
         try:
-            import_submodules("%s.%s" % (app, config.MODELS_MODULE))
+            module = importlib.import_module(package_name)
+            if hasattr(module, '__path__'):
+                import_submodules(package_name)
         except ImportError:
             pass
 
