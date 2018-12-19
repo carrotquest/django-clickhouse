@@ -195,12 +195,15 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
 
                 with statsd.timer(statsd_key.format('steps.get_operations')):
                     operations = storage.get_operations(import_key, cls.get_sync_batch_size())
+                    statsd.incr(statsd_key.format('operations', count=len(operations)))
 
                 if operations:
                     with statsd.timer(statsd_key.format('steps.get_sync_objects')):
                         import_objects = cls.get_sync_objects(operations)
                 else:
                     import_objects = []
+
+                statsd.incr(statsd_key.format('import_objects', count=len(import_objects)))
 
                 if import_objects:
                     with statsd.timer(statsd_key.format('steps.get_insert_batch')):
