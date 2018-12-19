@@ -18,7 +18,7 @@ def sync_clickhouse_converter(cls):  # type: (ClickHouseModel) -> None
     :return: None
     """
     statsd_key = "%s.sync.%s.time" % (config.STATSD_PREFIX, cls.__name__)
-    with statsd.timing(statsd_key):
+    with statsd.timer(statsd_key):
         cls.sync_batch_from_storage()
 
 
