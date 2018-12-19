@@ -117,6 +117,7 @@ class Storage:
                      % (operation, len(pks), import_key))
 
         statsd_key = "%s.sync.%s.register_operations" % (config.STATSD_PREFIX, import_key)
+        statsd.incr(statsd_key + '.%s' % operation, len(pks))
         with statsd.timer(statsd_key):
             return self.register_operations(import_key, operation, *pks)
 
