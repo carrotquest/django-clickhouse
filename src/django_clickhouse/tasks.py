@@ -28,7 +28,10 @@ def clickhouse_auto_sync():
     """
     # Import all model modules
     for app in settings.INSTALLED_APPS:
-        import_submodules("%s.%s" % (app, config.MODELS_MODULE))
+        try:
+            import_submodules("%s.%s" % (app, config.MODELS_MODULE))
+        except ImportError:
+            pass
 
     # Start
     for cls in get_subclasses(ClickHouseModel, recursive=True):
