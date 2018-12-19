@@ -17,9 +17,7 @@ def sync_clickhouse_converter(cls):  # type: (ClickHouseModel) -> None
     :param cls: ClickHouseModel subclass
     :return: None
     """
-    statsd_key = "%s.sync.%s.time" % (config.STATSD_PREFIX, cls.__name__)
-    with statsd.timer(statsd_key):
-        cls.sync_batch_from_storage()
+    cls.sync_batch_from_storage()
 
 
 @shared_task(queue=config.CELERY_QUEUE)

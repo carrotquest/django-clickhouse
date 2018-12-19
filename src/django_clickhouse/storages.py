@@ -116,7 +116,9 @@ class Storage:
         logger.debug('django-clickhouse: registered %s on %d items (%s) to storage'
                      % (operation, len(pks), import_key))
 
-        return self.register_operations(import_key, operation, *pks)
+        statsd_key = "%s.sync.%s.register_operations" % (config.STATSD_PREFIX, import_key)
+        with statsd.timer(statsd_key):
+            return self.register_operations(import_key, operation, *pks)
 
     def flush(self):
         """

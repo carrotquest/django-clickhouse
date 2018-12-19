@@ -190,26 +190,26 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
                 storage = cls.get_storage()
                 import_key = cls.get_import_key()
 
-                with statsd.timer(statsd_key.format('pre_sync')):
+                with statsd.timer(statsd_key.format('steps.pre_sync')):
                     storage.pre_sync(import_key, lock_timeout=cls.get_lock_timeout())
 
-                with statsd.timer(statsd_key.format('get_operations')):
+                with statsd.timer(statsd_key.format('steps.get_operations')):
                     operations = storage.get_operations(import_key, cls.get_sync_batch_size())
 
                 if operations:
-                    with statsd.timer(statsd_key.format('get_sync_objects')):
+                    with statsd.timer(statsd_key.format('steps.get_sync_objects')):
                         import_objects = cls.get_sync_objects(operations)
                 else:
                     import_objects = []
 
                 if import_objects:
-                    with statsd.timer(statsd_key.format('get_insert_batch')):
+                    with statsd.timer(statsd_key.format('steps.get_insert_batch')):
                         batch = cls.get_insert_batch(import_objects)
 
-                    with statsd.timer(statsd_key.format('insert')):
+                    with statsd.timer(statsd_key.format('steps.insert')):
                         cls.insert_batch(batch)
 
-                with statsd.timer(statsd_key.format('post_sync')):
+                with statsd.timer(statsd_key.format('steps.post_sync')):
                     storage.post_sync(import_key)
 
                     storage.set_last_sync_time(import_key, now())
@@ -252,29 +252,29 @@ class ClickHouseMultiModel(ClickHouseModel):
                 storage = cls.get_storage()
                 import_key = cls.get_import_key()
 
-                with statsd.timer(statsd_key.format('pre_sync')):
+                with statsd.timer(statsd_key.format('steps.pre_sync')):
                     storage.pre_sync(import_key, lock_timeout=cls.get_lock_timeout())
 
-                with statsd.timer(statsd_key.format('get_operations')):
+                with statsd.timer(statsd_key.format('steps.get_operations')):
                     operations = storage.get_operations(import_key, cls.get_sync_batch_size())
 
                 if operations:
-                    with statsd.timer(statsd_key.format('get_sync_objects')):
+                    with statsd.timer(statsd_key.format('steps.get_sync_objects')):
                         import_objects = cls.get_sync_objects(operations)
                 else:
                     import_objects = []
 
                 if import_objects:
                     batches = {}
-                    with statsd.timer(statsd_key.format('get_insert_batch')):
+                    with statsd.timer(statsd_key.format('steps.get_insert_batch')):
                         for model_cls in cls.sub_models:
                             batches[model_cls] = model_cls.get_insert_batch(import_objects)
 
-                    with statsd.timer(statsd_key.format('insert')):
+                    with statsd.timer(statsd_key.format('steps.insert')):
                         for model_cls, batch in batches.items():
                             model_cls.insert_batch(batch)
 
-                with statsd.timer(statsd_key.format('post_sync')):
+                with statsd.timer(statsd_key.format('steps.post_sync')):
                     storage.post_sync(import_key)
                     storage.set_last_sync_time(import_key, now())
 
