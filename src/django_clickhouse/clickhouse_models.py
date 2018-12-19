@@ -54,7 +54,6 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     sync_batch_size = None
     sync_storage = None
     sync_delay = None
-    sync_database_alias = None
     sync_lock_timeout = None
 
     # This attribute is initialized in metaclass, as it must get model class as a parameter
@@ -174,8 +173,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         :return:
         """
         if batch:
-            conn = connections[cls.sync_database_alias]
-            conn.insert(batch)
+            cls.get_database(for_write=True).insert(batch)
 
     @classmethod
     def sync_batch_from_storage(cls):
