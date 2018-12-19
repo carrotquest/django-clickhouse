@@ -193,7 +193,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
 
                 with statsd.timer(statsd_key.format('steps.get_operations')):
                     operations = storage.get_operations(import_key, cls.get_sync_batch_size())
-                    statsd.incr(statsd_key.format('operations', count=len(operations)))
+                    statsd.incr(statsd_key.format('operations', len(operations)))
 
                 if operations:
                     with statsd.timer(statsd_key.format('steps.get_sync_objects')):
@@ -201,7 +201,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
                 else:
                     import_objects = []
 
-                statsd.incr(statsd_key.format('import_objects', count=len(import_objects)))
+                statsd.incr(statsd_key.format('import_objects', len(import_objects)))
 
                 if import_objects:
                     with statsd.timer(statsd_key.format('steps.get_insert_batch')):
@@ -258,7 +258,7 @@ class ClickHouseMultiModel(ClickHouseModel):
 
                 with statsd.timer(statsd_key.format('steps.get_operations')):
                     operations = storage.get_operations(import_key, cls.get_sync_batch_size())
-                    statsd.incr(statsd_key.format('operations', count=len(operations)))
+                    statsd.incr(statsd_key.format('operations', len(operations)))
 
                 if operations:
                     with statsd.timer(statsd_key.format('steps.get_sync_objects')):
@@ -266,7 +266,7 @@ class ClickHouseMultiModel(ClickHouseModel):
                 else:
                     import_objects = []
 
-                statsd.incr(statsd_key.format('import_objects', count=len(import_objects)))
+                statsd.incr(statsd_key.format('import_objects', len(import_objects)))
 
                 if import_objects:
                     batches = {}
