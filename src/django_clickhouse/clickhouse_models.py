@@ -4,10 +4,9 @@ This file defines base abstract models to inherit from
 import datetime
 from collections import defaultdict
 from itertools import chain
-from typing import List, Tuple, Iterable
+from typing import List, Tuple, Iterable, Set, Any
 
-from django.db.models import Model as DjangoModel
-from django.utils.timezone import now
+from django.db.models import Model as DjangoModel, QuerySet as DjangoQuerySet
 from infi.clickhouse_orm.database import Database
 from infi.clickhouse_orm.engines import CollapsingMergeTree
 from infi.clickhouse_orm.models import Model as InfiModel, ModelBase as InfiModelBase
@@ -136,6 +135,16 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         return True
 
     @classmethod
+    def get_sync_query_set(cls, using, pk_set):  # type: (str, Set[Any]) -> DjangoQuerySet
+        """
+        Forms django queryset to fetch for sync
+        :param using: Database to fetch from
+        :param pk_set: A set of primary keys to fetch
+        :return: QuerySet
+        """
+        return cls.django_model.objects.filter(pk__in=pk_set).using(using)
+
+    @classmethod
     def get_sync_objects(cls, operations):  # type: (List[Tuple[str, str]]) -> List[DjangoModel]
         """
         Returns objects from main database to sync
@@ -150,10 +159,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
             using, pk = pk_str.split('.')
             pk_by_db[using].add(pk)
 
-        objs = chain(*(
-            cls.django_model.objects.filter(pk__in=pk_set).using(using)
-            for using, pk_set in pk_by_db.items()
-        ))
+        objs = chain(*(cls.get_sync_query_set(using, pk_set) for using, pk_set in pk_by_db.items()))
         return list(objs)
 
     @classmethod
