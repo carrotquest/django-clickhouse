@@ -64,8 +64,9 @@ def migrate_app(app_label, db_alias, up_to=9999, database=None):
 
     if module_exists(migrations_package):
         database = database or connections[db_alias]
+        migration_history_model = lazy_class_import(config.MIGRATION_HISTORY_MODEL)
 
-        applied_migrations = MigrationHistory.get_applied_migrations(db_alias, migrations_package)
+        applied_migrations = migration_history_model.get_applied_migrations(db_alias, migrations_package)
         modules = import_submodules(migrations_package)
         unapplied_migrations = set(modules.keys()) - applied_migrations
 
@@ -74,7 +75,6 @@ def migrate_app(app_label, db_alias, up_to=9999, database=None):
             migration = modules[name].Migration()
             migration.apply(db_alias, database=database)
 
-            migration_history_model = lazy_class_import(config.MIGRATION_HISTORY_MODEL)
             migration_history_model.set_migration_applied(db_alias, migrations_package, name)
 
             if int(name[:4]) >= up_to:
@@ -121,11 +121,10 @@ class MigrationHistory(ClickHouseModel):
         """
         # Ensure that table for migration storing is created
         for db_alias in cls.migrate_non_replicated_db_aliases:
-            connections[db_alias].create_table(MigrationHistory)
+            connections[db_alias].create_table(cls)
 
         cls.objects.bulk_create([
-            MigrationHistory(db_alias=db_alias, package_name=migrations_package, module_name=name,
-                             applied=datetime.date.today())
+            cls(db_alias=db_alias, package_name=migrations_package, module_name=name, applied=datetime.date.today())
         ])
 
     @classmethod
@@ -136,7 +135,7 @@ class MigrationHistory(ClickHouseModel):
         :param migrations_package: Package name to check
         :return: Set of migration names
         """
-        qs = MigrationHistory.objects.filter(package_name=migrations_package, db_alias=db_alias).only('module_name')
+        qs = cls.objects.filter(package_name=migrations_package, db_alias=db_alias).only('module_name')
         try:
             return set(obj.module_name for obj in qs)
         except ServerError as ex:
