@@ -161,7 +161,7 @@ class ClickHouseSyncModel(DjangoModel):
         Returns all clickhouse models, listening to this class
         :return: A set of model classes to sync
         """
-        return cls._clickhouse_sync_models
+        return getattr(cls, '_clickhouse_sync_models', set())
 
     @classmethod
     def register_clickhouse_operations(cls, operation, *model_pks, using=None):
