@@ -8,15 +8,15 @@ Storage should be able to restore current importing batch, if something goes wro
 """
 import datetime
 import logging
-import os
 from typing import Any, Optional, List, Tuple
 
+import os
 from statsd.defaults.django import statsd
 
-from django_clickhouse.redis import redis_zadd
-from django_clickhouse.utils import check_pid
 from .configuration import config
 from .exceptions import ConfigurationError, RedisLockTimeoutError
+from .redis import redis_zadd
+from .utils import check_pid, get_subclasses
 
 logger = logging.getLogger('django-clickhouse')
 
@@ -253,6 +253,12 @@ class RedisStorage(Storage):
             keys = self._redis.keys(tpl)
             if keys:
                 self._redis.delete(*keys)
+
+        from .clickhouse_models import ClickHouseModel
+        for model in get_subclasses(ClickHouseModel):
+            if isinstance(model.get_storage(), self.__class__):
+                key = "%s.sync.%s.queue" % (config.STATSD_PREFIX, model.get_import_key())
+                statsd.gauge(key, 0)
 
     def get_last_sync_time(self, import_key):
         sync_ts_key = self.REDIS_KEY_LAST_SYNC_TS.format(import_key=import_key)

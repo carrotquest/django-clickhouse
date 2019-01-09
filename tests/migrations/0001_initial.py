@@ -23,4 +23,15 @@ class Migration(migrations.Migration):
                 'abstract': False,
             },
         ),
+        migrations.CreateModel(
+            name='SecondTestModel',
+            fields=[
+                ('id', models.AutoField()),
+                ('value', models.IntegerField()),
+                ('created_date', models.DateField()),
+            ],
+            options={
+                'abstract': False,
+            },
+        ),
     ]

@@ -2,7 +2,7 @@ from infi.clickhouse_orm import fields
 
 from django_clickhouse.clickhouse_models import ClickHouseModel, ClickHouseMultiModel
 from django_clickhouse.engines import ReplacingMergeTree, CollapsingMergeTree
-from tests.models import TestModel
+from tests.models import TestModel, SecondTestModel
 
 
 class ClickHouseTestModel(ClickHouseModel):
@@ -37,3 +37,15 @@ class ClickHouseMultiTestModel(ClickHouseMultiModel):
     sub_models = [ClickHouseTestModel, ClickHouseCollapseTestModel]
     sync_delay = 2
     sync_enabled = True
+
+
+class ClickHouseSecondTestModel(ClickHouseModel):
+    django_model = SecondTestModel
+    sync_delay = 2
+    sync_enabled = True
+
+    id = fields.Int32Field()
+    created_date = fields.DateField()
+    value = fields.Int32Field()
+
+    engine = ReplacingMergeTree('created_date', ('id',))

@@ -3,7 +3,7 @@ This file contains base django model to be synced with ClickHouse.
 It saves all operations to storage in order to write them to ClickHouse later.
 """
 
-from typing import Optional, Any, List, Type
+from typing import Optional, Any, List, Type, Set
 
 import six
 from django.db import transaction
@@ -128,7 +128,6 @@ class ClickHouseSyncModel(DjangoModel):
     """
     Base model for syncing data. Each django model synced with data must inherit this
     """
-    _clickhouse_sync_models = []
     objects = ClickHouseSyncManager()
 
     class Meta:
@@ -151,13 +150,16 @@ class ClickHouseSyncModel(DjangoModel):
         :param model_cls: Model class to register
         :return: None
         """
-        cls._clickhouse_sync_models.append(model_cls)
+        if not hasattr(cls, '_clickhouse_sync_models'):
+            cls._clickhouse_sync_models = set()
+
+        cls._clickhouse_sync_models.add(model_cls)
 
     @classmethod
-    def get_clickhouse_sync_models(cls):  # type: () -> List['django_clickhouse.clickhouse_models.ClickHouseModel']
+    def get_clickhouse_sync_models(cls):  # type: () -> Set['django_clickhouse.clickhouse_models.ClickHouseModel']
         """
         Returns all clickhouse models, listening to this class
-        :return:
+        :return: A set of model classes to sync
         """
         return cls._clickhouse_sync_models
 
