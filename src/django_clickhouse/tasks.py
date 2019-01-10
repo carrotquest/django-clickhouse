@@ -11,7 +11,7 @@ from .utils import get_subclasses
 
 
 @shared_task(queue=config.CELERY_QUEUE)
-def sync_clickhouse_converter(cls):  # type: (ClickHouseModel) -> None
+def sync_clickhouse_model(cls):  # type: (ClickHouseModel) -> None
     """
     Syncs one batch of given ClickHouseModel
     :param cls: ClickHouseModel subclass
@@ -41,4 +41,4 @@ def clickhouse_auto_sync():
         if cls.need_sync():
             # Даже если синхронизация вдруг не выполнится, не страшно, что мы установили период синхронизации
             # Она выполнится следующей таской через интервал.
-            sync_clickhouse_converter.delay(cls)
+            sync_clickhouse_model.delay(cls)
