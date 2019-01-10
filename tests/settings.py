@@ -12,6 +12,14 @@ DATABASES = {
         'HOST': '127.0.0.1',
         'PORT': '5432'
     },
+    'secondary': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'test2',
+        'USER': 'test',
+        'PASSWORD': 'test',
+        'HOST': '127.0.0.1',
+        'PORT': '5432'
+    },
 
     # I need separate connections for multiprocessing tests
     'test_db': {

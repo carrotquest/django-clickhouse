@@ -1,0 +1,18 @@
+[
+  {
+    "model": "tests.SecondaryTestModel",
+    "pk": 1,
+    "fields": {
+      "value": 100,
+      "created_date": "2018-01-01"
+    }
+  },
+  {
+    "model": "tests.SecondaryTestModel",
+    "pk": 2,
+    "fields": {
+      "value": 200,
+      "created_date": "2018-02-01"
+    }
+  }
+]

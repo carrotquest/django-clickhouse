@@ -12,5 +12,7 @@ class SecondaryRouter:
         return True
 
     def allow_migrate(self, db, app_label, model=None, **hints):
-        if model.__name__.lower().startswith('secondary'):
-            return 'secondary'
+        if model and model.__name__.lower().startswith('secondary'):
+            return db == 'secondary'
+        else:
+            return False if db == 'secondary' else None

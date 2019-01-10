@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='SecondTestModel',
+            name='SecondaryTestModel',
             fields=[
                 ('id', models.AutoField()),
                 ('value', models.IntegerField()),
