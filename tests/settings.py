@@ -81,3 +81,5 @@ CLICKHOUSE_REDIS_CONFIG = {
     'db': 8,
     'socket_timeout': 10
 }
+
+DATABASE_ROUTERS = ['tests.routers.SecondaryRouter']

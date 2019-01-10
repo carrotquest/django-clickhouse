@@ -4,7 +4,7 @@ from django.test import TransactionTestCase
 
 from tests.clickhouse_models import ClickHouseTestModel, ClickHouseSecondTestModel, ClickHouseCollapseTestModel, \
     ClickHouseMultiTestModel
-from tests.models import TestModel, SecondTestModel
+from tests.models import TestModel, SecondaryTestModel
 
 
 # TestCase can't be used here:
@@ -113,6 +113,6 @@ class ClickHouseDjangoModelTest(TransactionTestCase):
         self.assertListEqual([('delete', 'default.1')], self.storage.get_operations(ClickHouseTestModel.get_import_key(), 10))
 
     def test_clickhouse_sync_models(self):
-        self.assertSetEqual({ClickHouseSecondTestModel}, SecondTestModel.get_clickhouse_sync_models())
+        self.assertSetEqual({ClickHouseSecondTestModel}, SecondaryTestModel.get_clickhouse_sync_models())
         self.assertSetEqual({ClickHouseTestModel, ClickHouseCollapseTestModel, ClickHouseMultiTestModel},
                             TestModel.get_clickhouse_sync_models())

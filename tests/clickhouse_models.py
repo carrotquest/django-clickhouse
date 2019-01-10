@@ -2,7 +2,7 @@ from infi.clickhouse_orm import fields
 
 from django_clickhouse.clickhouse_models import ClickHouseModel, ClickHouseMultiModel
 from django_clickhouse.engines import ReplacingMergeTree, CollapsingMergeTree
-from tests.models import TestModel, SecondTestModel
+from tests.models import TestModel, SecondaryTestModel
 
 
 class ClickHouseTestModel(ClickHouseModel):
@@ -40,7 +40,7 @@ class ClickHouseMultiTestModel(ClickHouseMultiModel):
 
 
 class ClickHouseSecondTestModel(ClickHouseModel):
-    django_model = SecondTestModel
+    django_model = SecondaryTestModel
     sync_delay = 2
     sync_enabled = True
 

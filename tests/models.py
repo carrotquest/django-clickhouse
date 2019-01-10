@@ -11,6 +11,6 @@ class TestModel(ClickHouseSyncModel):
     created_date = models.DateField()
 
 
-class SecondTestModel(ClickHouseSyncModel):
+class SecondaryTestModel(ClickHouseSyncModel):
     value = models.IntegerField()
     created_date = models.DateField()
