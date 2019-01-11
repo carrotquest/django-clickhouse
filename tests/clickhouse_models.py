@@ -28,6 +28,7 @@ class ClickHouseCollapseTestModel(ClickHouseModel):
     created_date = fields.DateField()
     value = fields.Int32Field()
     sign = fields.Int8Field()
+    version = fields.Int8Field(default=1)
 
     engine = CollapsingMergeTree('created_date', ('id',), 'sign')
 

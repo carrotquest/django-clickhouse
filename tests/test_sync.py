@@ -37,7 +37,7 @@ class SyncTest(TransactionTestCase):
         self.assertEqual(obj.value, synced_data[0].value)
         self.assertEqual(obj.id, synced_data[0].id)
 
-    def test_collapsing_update(self):
+    def test_collapsing_update_by_final(self):
         obj = TestModel.objects.create(value=1, created_date=datetime.date.today())
         obj.value = 2
         obj.save()
@@ -59,6 +59,33 @@ class SyncTest(TransactionTestCase):
         self.assertEqual(obj.created_date, synced_data[0].created_date)
         self.assertEqual(obj.value, synced_data[0].value)
         self.assertEqual(obj.id, synced_data[0].id)
+
+    def test_collapsing_update_by_version(self):
+        ClickHouseCollapseTestModel.engine.version_col = 'version'
+
+        obj = TestModel.objects.create(value=1, created_date=datetime.date.today())
+        obj.value = 2
+        obj.save()
+        ClickHouseCollapseTestModel.sync_batch_from_storage()
+
+        # sync_batch_from_storage uses FINAL, so data would be collapsed by now
+        synced_data = list(ClickHouseCollapseTestModel.objects.all())
+        self.assertEqual(1, len(synced_data))
+        self.assertEqual(obj.created_date, synced_data[0].created_date)
+        self.assertEqual(obj.value, synced_data[0].value)
+        self.assertEqual(obj.id, synced_data[0].id)
+
+        obj.value = 3
+        obj.save()
+        ClickHouseCollapseTestModel.sync_batch_from_storage()
+
+        synced_data = list(self.db.select('SELECT * FROM $table FINAL', model_class=ClickHouseCollapseTestModel))
+        self.assertGreaterEqual(1, len(synced_data))
+        self.assertEqual(obj.created_date, synced_data[0].created_date)
+        self.assertEqual(obj.value, synced_data[0].value)
+        self.assertEqual(obj.id, synced_data[0].id)
+
+        ClickHouseCollapseTestModel.engine.version_col = None
 
     @expectedFailure
     def test_collapsing_delete(self):
