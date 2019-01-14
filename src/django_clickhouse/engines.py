@@ -1,6 +1,7 @@
 """
 This file contains wrappers for infi.clckhouse_orm engines to use in django-clickhouse
 """
+import datetime
 from typing import List, TypeVar, Type
 
 from django.db.models import Model as DjangoModel
@@ -8,6 +9,7 @@ from infi.clickhouse_orm import engines as infi_engines
 from infi.clickhouse_orm.models import Model as InfiModel
 from statsd.defaults.django import statsd
 
+from django_clickhouse.database import connections
 from .configuration import config
 from .utils import format_datetime
 
@@ -46,11 +48,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         self.version_col = kwargs.pop('version_col', None)
         super(CollapsingMergeTree, self).__init__(*args, **kwargs)
 
-    def _get_final_versions_by_version(self, model_cls, min_date, max_date, object_pks):
-        db = model_cls.get_database()
-        min_date = format_datetime(min_date, 0, db_alias=db.db_alias)
-        max_date = format_datetime(min_date, 0, day_end=True, db_alias=db.db_alias)
-
+    def _get_final_versions_by_version(self, db_alias, model_cls, min_date, max_date, object_pks):
         query = """
             SELECT * FROM $table WHERE (`{pk_column}`, `{version_col}`) IN (
                 SELECT `{pk_column}`, MAX(`{version_col}`) 
@@ -60,24 +58,20 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
                 GROUP BY `{pk_column}`
            )
         """.format(version_col=self.version_col, date_col=self.date_col, pk_column=self.pk_column,
-                   min_date=min_date.isoformat(), max_date=max_date.isoformat(), object_pks=','.join(object_pks))
+                   min_date=min_date, max_date=max_date, object_pks=','.join(object_pks))
 
-        qs = db.select(query, model_class=model_cls)
+        qs = connections[db_alias].select(query, model_class=model_cls)
         return list(qs)
 
-    def _get_final_versions_by_final(self, model_cls, min_date, max_date, object_pks):
-        db = model_cls.get_database()
-        min_date = format_datetime(min_date, 0, db_alias=db.db_alias)
-        max_date = format_datetime(min_date, 0, day_end=True, db_alias=db.db_alias)
-
+    def _get_final_versions_by_final(self, db_alias, model_cls, min_date, max_date, object_pks):
         query = """
             SELECT * FROM $table FINAL
             WHERE `{date_col}` >= '{min_date}' AND `{date_col}` <= '{max_date}'
                 AND `{pk_column}` IN ({object_pks})
         """
-        query = query.format(date_col=self.date_col, pk_column=self.pk_column, min_date=min_date.isoformat(),
-                             max_date=max_date.isoformat(), object_pks=','.join(object_pks))
-        qs = db.select(query, model_class=model_cls)
+        query = query.format(date_col=self.date_col, pk_column=self.pk_column, min_date=min_date,
+                             max_date=max_date, object_pks=','.join(object_pks))
+        qs = connections[db_alias].select(query, model_class=model_cls)
         return list(qs)
 
     def get_final_versions(self, model_cls, objects):
@@ -105,10 +99,22 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
 
         object_pks = [str(getattr(obj, self.pk_column)) for obj in objects]
 
-        if self.version_col:
-            return self._get_final_versions_by_version(model_cls, min_date, max_date, object_pks)
+        db_alias = model_cls.get_database_alias()
+
+        if isinstance(min_date, datetime.date):
+            min_date = min_date.isoformat()
         else:
-            return self._get_final_versions_by_final(model_cls, min_date, max_date, object_pks)
+            min_date = format_datetime(min_date, 0, db_alias=db_alias)
+
+        if isinstance(max_date, datetime.date):
+            max_date = max_date.isoformat()
+        else:
+            max_date = format_datetime(max_date, 0, day_end=True, db_alias=db_alias)
+
+        if self.version_col:
+            return self._get_final_versions_by_version(db_alias, model_cls, min_date, max_date, object_pks)
+        else:
+            return self._get_final_versions_by_final(db_alias, model_cls, min_date, max_date, object_pks)
 
     def get_insert_batch(self, model_cls, objects):
         # type: (Type[T], List[DjangoModel]) -> List[T]

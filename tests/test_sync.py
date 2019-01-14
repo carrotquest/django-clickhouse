@@ -22,7 +22,6 @@ class SyncTest(TransactionTestCase):
     def setUp(self):
         self.db = connections['default']
         self.db.drop_database()
-        self.db.db_exists = False
         self.db.create_database()
         migrate_app('tests', 'default')
         ClickHouseTestModel.get_storage().flush()
