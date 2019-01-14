@@ -18,6 +18,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField()),
                 ('value', models.IntegerField()),
                 ('created_date', models.DateField()),
+                ('created', models.DateTimeField()),
             ],
             options={
                 'abstract': False,
@@ -29,6 +30,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField()),
                 ('value', models.IntegerField()),
                 ('created_date', models.DateField()),
+                ('created', models.DateTimeField()),
             ],
             options={
                 'abstract': False,

@@ -25,7 +25,8 @@ class ClickHouseCollapseTestModel(ClickHouseModel):
     sync_enabled = True
 
     id = fields.Int32Field()
-    created_date = fields.DateField()
+    created_date = fields.DateField(materialized='toDate(created)')
+    created = fields.DateTimeField()
     value = fields.Int32Field()
     sign = fields.Int8Field()
     version = fields.Int8Field(default=1)

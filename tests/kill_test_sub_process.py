@@ -25,7 +25,8 @@ logger = logging.getLogger('django-clickhouse')
 def create(batch_size=1000, test_time=60, period=1, **kwargs):
     for iteration in range(int(test_time / period)):
         res = TestModel.objects.db_manager('test_db').bulk_create([
-            TestModel(created_date='2018-01-01', value=iteration * batch_size + i) for i in range(batch_size)
+            TestModel(created=datetime.datetime.now(), created_date='2018-01-01', value=iteration * batch_size + i)
+            for i in range(batch_size)
         ])
         logger.info('django-clickhouse: test created %d records' % len(res))
         sleep(period)

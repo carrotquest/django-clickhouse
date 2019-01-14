@@ -27,7 +27,7 @@ class SyncTest(TransactionTestCase):
         ClickHouseTestModel.get_storage().flush()
 
     def test_simple(self):
-        obj = TestModel.objects.create(value=1, created_date=datetime.date.today())
+        obj = TestModel.objects.create(value=1, created=datetime.datetime.now(), created_date=datetime.date.today())
         ClickHouseTestModel.sync_batch_from_storage()
 
         synced_data = list(ClickHouseTestModel.objects.all())
@@ -37,7 +37,7 @@ class SyncTest(TransactionTestCase):
         self.assertEqual(obj.id, synced_data[0].id)
 
     def test_collapsing_update_by_final(self):
-        obj = TestModel.objects.create(value=1, created_date=datetime.date.today())
+        obj = TestModel.objects.create(value=1, created=datetime.datetime.now(), created_date=datetime.date.today())
         obj.value = 2
         obj.save()
         ClickHouseCollapseTestModel.sync_batch_from_storage()
@@ -55,14 +55,13 @@ class SyncTest(TransactionTestCase):
 
         synced_data = list(self.db.select('SELECT * FROM $table FINAL', model_class=ClickHouseCollapseTestModel))
         self.assertGreaterEqual(1, len(synced_data))
-        self.assertEqual(obj.created_date, synced_data[0].created_date)
         self.assertEqual(obj.value, synced_data[0].value)
         self.assertEqual(obj.id, synced_data[0].id)
 
     def test_collapsing_update_by_version(self):
         ClickHouseCollapseTestModel.engine.version_col = 'version'
 
-        obj = TestModel.objects.create(value=1, created_date=datetime.date.today())
+        obj = TestModel.objects.create(value=1, created=datetime.datetime.now(), created_date=datetime.date.today())
         obj.value = 2
         obj.save()
         ClickHouseCollapseTestModel.sync_batch_from_storage()
@@ -80,7 +79,6 @@ class SyncTest(TransactionTestCase):
 
         synced_data = list(self.db.select('SELECT * FROM $table FINAL', model_class=ClickHouseCollapseTestModel))
         self.assertGreaterEqual(1, len(synced_data))
-        self.assertEqual(obj.created_date, synced_data[0].created_date)
         self.assertEqual(obj.value, synced_data[0].value)
         self.assertEqual(obj.id, synced_data[0].id)
 
@@ -98,7 +96,7 @@ class SyncTest(TransactionTestCase):
         self.assertEqual(0, len(synced_data))
 
     def test_multi_model(self):
-        obj = TestModel.objects.create(value=1, created_date=datetime.date.today())
+        obj = TestModel.objects.create(value=1, created=datetime.datetime.now(), created_date=datetime.date.today())
         obj.value = 2
         obj.save()
         ClickHouseMultiTestModel.sync_batch_from_storage()
@@ -122,7 +120,6 @@ class SyncTest(TransactionTestCase):
 
         synced_data = list(self.db.select('SELECT * FROM $table FINAL', model_class=ClickHouseCollapseTestModel))
         self.assertGreaterEqual(1, len(synced_data))
-        self.assertEqual(obj.created_date, synced_data[0].created_date)
         self.assertEqual(obj.value, synced_data[0].value)
         self.assertEqual(obj.id, synced_data[0].id)
 

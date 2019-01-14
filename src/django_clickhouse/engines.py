@@ -2,7 +2,7 @@
 This file contains wrappers for infi.clckhouse_orm engines to use in django-clickhouse
 """
 import datetime
-from typing import List, TypeVar, Type
+from typing import List, TypeVar, Type, Union
 
 from django.db.models import Model as DjangoModel
 from infi.clickhouse_orm import engines as infi_engines
@@ -74,7 +74,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         qs = connections[db_alias].select(query, model_class=model_cls)
         return list(qs)
 
-    def get_final_versions(self, model_cls, objects):
+    def get_final_versions(self, model_cls, objects, date_col=None):
         """
         Get objects, that are currently stored in ClickHouse.
         Depending on the partition key this can be different for different models.
@@ -84,9 +84,19 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         :param objects: Objects for which final versions are searched
         :return: A list of model objects
         """
+
+        def _dt_to_str(dt):  # type: (Union[datetime.date, datetime.datetime]) -> str
+            if isinstance(dt, datetime.datetime):
+                return format_datetime(dt, 0, db_alias=db_alias)
+            elif isinstance(dt, datetime.date):
+                return dt.isoformat()
+            else:
+                raise Exception('Invalid date or datetime object: `%s`' % dt)
+
         if not objects:
             return []
 
+        date_col = date_col or self.date_col
         min_date, max_date = None, None
         for obj in objects:
             obj_date = getattr(obj, self.date_col)
@@ -101,15 +111,8 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
 
         db_alias = model_cls.get_database_alias()
 
-        if isinstance(min_date, datetime.date):
-            min_date = min_date.isoformat()
-        else:
-            min_date = format_datetime(min_date, 0, db_alias=db_alias)
-
-        if isinstance(max_date, datetime.date):
-            max_date = max_date.isoformat()
-        else:
-            max_date = format_datetime(max_date, 0, day_end=True, db_alias=db_alias)
+        min_date = _dt_to_str(min_date)
+        max_date = _dt_to_str(max_date)
 
         if self.version_col:
             return self._get_final_versions_by_version(db_alias, model_cls, min_date, max_date, object_pks)
