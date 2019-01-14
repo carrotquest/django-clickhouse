@@ -8,9 +8,8 @@ from infi.clickhouse_orm import engines as infi_engines
 from infi.clickhouse_orm.models import Model as InfiModel
 from statsd.defaults.django import statsd
 
-from django_clickhouse.database import connections
 from .configuration import config
-from .utils import lazy_class_import
+from .utils import format_datetime
 
 T = TypeVar('T')
 
@@ -48,6 +47,10 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         super(CollapsingMergeTree, self).__init__(*args, **kwargs)
 
     def _get_final_versions_by_version(self, model_cls, min_date, max_date, object_pks):
+        db = model_cls.get_database()
+        min_date = format_datetime(min_date, 0, db_alias=db.db_alias)
+        max_date = format_datetime(min_date, 0, day_end=True, db_alias=db.db_alias)
+
         query = """
             SELECT * FROM $table WHERE (`{pk_column}`, `{version_col}`) IN (
                 SELECT `{pk_column}`, MAX(`{version_col}`) 
@@ -59,10 +62,14 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         """.format(version_col=self.version_col, date_col=self.date_col, pk_column=self.pk_column,
                    min_date=min_date.isoformat(), max_date=max_date.isoformat(), object_pks=','.join(object_pks))
 
-        qs = model_cls.get_database().select(query, model_class=model_cls)
+        qs = db.select(query, model_class=model_cls)
         return list(qs)
 
     def _get_final_versions_by_final(self, model_cls, min_date, max_date, object_pks):
+        db = model_cls.get_database()
+        min_date = format_datetime(min_date, 0, db_alias=db.db_alias)
+        max_date = format_datetime(min_date, 0, day_end=True, db_alias=db.db_alias)
+
         query = """
             SELECT * FROM $table FINAL
             WHERE `{date_col}` >= '{min_date}' AND `{date_col}` <= '{max_date}'
@@ -70,7 +77,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         """
         query = query.format(date_col=self.date_col, pk_column=self.pk_column, min_date=min_date.isoformat(),
                              max_date=max_date.isoformat(), object_pks=','.join(object_pks))
-        qs = model_cls.get_database().select(query, model_class=model_cls)
+        qs = db.select(query, model_class=model_cls)
         return list(qs)
 
     def get_final_versions(self, model_cls, objects):
