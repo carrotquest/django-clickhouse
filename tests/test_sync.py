@@ -45,7 +45,6 @@ class SyncTest(TransactionTestCase):
         # sync_batch_from_storage uses FINAL, so data would be collapsed by now
         synced_data = list(ClickHouseCollapseTestModel.objects.all())
         self.assertEqual(1, len(synced_data))
-        self.assertEqual(obj.created_date, synced_data[0].created_date)
         self.assertEqual(obj.value, synced_data[0].value)
         self.assertEqual(obj.id, synced_data[0].id)
 
@@ -69,7 +68,6 @@ class SyncTest(TransactionTestCase):
         # sync_batch_from_storage uses FINAL, so data would be collapsed by now
         synced_data = list(ClickHouseCollapseTestModel.objects.all())
         self.assertEqual(1, len(synced_data))
-        self.assertEqual(obj.created_date, synced_data[0].created_date)
         self.assertEqual(obj.value, synced_data[0].value)
         self.assertEqual(obj.id, synced_data[0].id)
 
@@ -110,7 +108,6 @@ class SyncTest(TransactionTestCase):
         # sync_batch_from_storage uses FINAL, so data would be collapsed by now
         synced_data = list(ClickHouseCollapseTestModel.objects.all())
         self.assertEqual(1, len(synced_data))
-        self.assertEqual(obj.created_date, synced_data[0].created_date)
         self.assertEqual(obj.value, synced_data[0].value)
         self.assertEqual(obj.id, synced_data[0].id)
 

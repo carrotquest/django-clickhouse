@@ -95,3 +95,12 @@ class CollapsingMergeTreeTest(TestCase):
         self.assertEqual(1, len(final_versions))
         self.assertDictEqual({'id': 1, 'sign': 1, 'version': 4, 'value': 0},
                              final_versions[0].to_dict(field_names=('id', 'sign', 'value', 'version')))
+
+    def test_versions(self):
+        ClickHouseCollapseTestModel.engine.version_col = 'version'
+        batch = ClickHouseCollapseTestModel.get_insert_batch(self.objects)
+        self.assertEqual(2, len(batch))
+        self.assertEqual(4, batch[0].version)
+        self.assertEqual(-1, batch[0].sign)
+        self.assertEqual(5, batch[1].version)
+        self.assertEqual(1, batch[1].sign)

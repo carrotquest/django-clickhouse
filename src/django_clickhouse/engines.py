@@ -48,7 +48,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         self.version_col = kwargs.pop('version_col', None)
         super(CollapsingMergeTree, self).__init__(*args, **kwargs)
 
-    def _get_final_versions_by_version(self, db_alias, model_cls, min_date, max_date, object_pks):
+    def _get_final_versions_by_version(self, db_alias, model_cls, min_date, max_date, object_pks, date_col):
         query = """
             SELECT * FROM $table WHERE (`{pk_column}`, `{version_col}`) IN (
                 SELECT `{pk_column}`, MAX(`{version_col}`) 
@@ -57,19 +57,19 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
                     AND `{pk_column}` IN ({object_pks})
                 GROUP BY `{pk_column}`
            )
-        """.format(version_col=self.version_col, date_col=self.date_col, pk_column=self.pk_column,
+        """.format(version_col=self.version_col, date_col=date_col, pk_column=self.pk_column,
                    min_date=min_date, max_date=max_date, object_pks=','.join(object_pks))
 
         qs = connections[db_alias].select(query, model_class=model_cls)
         return list(qs)
 
-    def _get_final_versions_by_final(self, db_alias, model_cls, min_date, max_date, object_pks):
+    def _get_final_versions_by_final(self, db_alias, model_cls, min_date, max_date, object_pks, date_col):
         query = """
             SELECT * FROM $table FINAL
             WHERE `{date_col}` >= '{min_date}' AND `{date_col}` <= '{max_date}'
                 AND `{pk_column}` IN ({object_pks})
         """
-        query = query.format(date_col=self.date_col, pk_column=self.pk_column, min_date=min_date,
+        query = query.format(date_col=date_col, pk_column=self.pk_column, min_date=min_date,
                              max_date=max_date, object_pks=','.join(object_pks))
         qs = connections[db_alias].select(query, model_class=model_cls)
         return list(qs)
@@ -99,7 +99,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         date_col = date_col or self.date_col
         min_date, max_date = None, None
         for obj in objects:
-            obj_date = getattr(obj, self.date_col)
+            obj_date = getattr(obj, date_col)
 
             if min_date is None or min_date > obj_date:
                 min_date = obj_date
@@ -115,9 +115,9 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         max_date = _dt_to_str(max_date)
 
         if self.version_col:
-            return self._get_final_versions_by_version(db_alias, model_cls, min_date, max_date, object_pks)
+            return self._get_final_versions_by_version(db_alias, model_cls, min_date, max_date, object_pks, date_col)
         else:
-            return self._get_final_versions_by_final(db_alias, model_cls, min_date, max_date, object_pks)
+            return self._get_final_versions_by_final(db_alias, model_cls, min_date, max_date, object_pks, date_col)
 
     def get_insert_batch(self, model_cls, objects):
         # type: (Type[T], List[DjangoModel]) -> List[T]
@@ -133,12 +133,16 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         with statsd.timer(statsd_key):
             old_objs = self.get_final_versions(model_cls, new_objs)
 
+        old_objs_versions = {}
         for obj in old_objs:
             self.set_obj_sign(obj, -1)
-            self.inc_obj_version(obj)
+            old_objs_versions[obj.id] = obj.version
 
         for obj in new_objs:
             self.set_obj_sign(obj, 1)
+
+            if self.version_col:
+                setattr(obj, self.version_col, old_objs_versions.get(obj.id, 0) + 1)
 
         return old_objs + new_objs
 
@@ -148,12 +152,3 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         :return: None
         """
         setattr(obj, self.sign_col, sign)
-
-    def inc_obj_version(self, obj):  # type: (InfiModel, int) -> None
-        """
-        Increments object version, if version column is set. By default gets attribute name from sign_col
-        :return: None
-        """
-        if self.version_col:
-            prev_version = getattr(obj, self.version_col) or 0
-            setattr(obj, self.version_col, prev_version + 1)
