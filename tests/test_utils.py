@@ -1,10 +1,11 @@
 import datetime
+from queue import Queue
 
 import pytz
 from django.test import TestCase
 
 from django_clickhouse.models import ClickHouseSyncModel
-from django_clickhouse.utils import get_tz_offset, format_datetime, lazy_class_import, int_ranges
+from django_clickhouse.utils import get_tz_offset, format_datetime, lazy_class_import, int_ranges, exec_in_parallel
 
 
 class GetTZOffsetTest(TestCase):
@@ -67,3 +68,34 @@ class TestIntRanges(TestCase):
     def test_bounds(self):
         self.assertListEqual([(1, 1), (5, 6), (10, 10)],
                              list(int_ranges([1, 5, 6, 10])))
+
+
+class TestExecInParallel(TestCase):
+    base_classes = []
+
+    def test_exec(self):
+        q = Queue()
+        for i in range(10):
+            q.put(([i], {}))
+
+        res = exec_in_parallel(lambda x: x*x, q, 4)
+        self.assertSetEqual({x * x for x in range(10)}, set(res))
+
+    def test_exec_no_count(self):
+        q = Queue()
+        for i in range(10):
+            q.put(([i], {}))
+
+        res = exec_in_parallel(lambda x: x * x, q)
+        self.assertSetEqual({x * x for x in range(10)}, set(res))
+
+    def test_exception(self):
+        q = Queue()
+        for i in range(10):
+            q.put(([i], {}))
+
+        def _test_func(x):
+            raise TypeError("Exception in thread %d" % x)
+
+        with self.assertRaises(TypeError):
+            exec_in_parallel(_test_func, q)

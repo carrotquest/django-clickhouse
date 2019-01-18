@@ -19,7 +19,7 @@ from .exceptions import RedisLockTimeoutError
 from .models import ClickHouseSyncModel
 from .query import QuerySet
 from .serializers import Django2ClickHouseModelSerializer
-from .utils import lazy_class_import
+from .utils import lazy_class_import, exec_multi_db_func
 
 
 class ClickHouseModelMeta(InfiModelBase):
@@ -159,8 +159,12 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
             using, pk = pk_str.split('.')
             pk_by_db[using].add(pk)
 
-        objs = chain(*(cls.get_sync_query_set(using, pk_set) for using, pk_set in pk_by_db.items()))
-        return list(objs)
+        # Selecting data from multiple databases should work faster in parallel, if connections are independent.
+        objs = exec_multi_db_func(
+            lambda db_alias: cls.get_sync_query_set(db_alias, pk_by_db[db_alias]),
+            pk_by_db.keys()
+        )
+        return list(chain(*objs))
 
     @classmethod
     def get_insert_batch(cls, import_objects):  # type: (Iterable[DjangoModel]) -> List[ClickHouseModel]
