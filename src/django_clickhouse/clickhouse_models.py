@@ -282,11 +282,15 @@ class ClickHouseMultiModel(ClickHouseModel):
                     batches = {}
                     with statsd.timer(statsd_key.format('steps.get_insert_batch')):
                         for model_cls in cls.sub_models:
-                            batches[model_cls] = model_cls.get_insert_batch(import_objects)
+                            model_statsd_key = "%s.sync.%s.{0}" % (config.STATSD_PREFIX, model_cls.__name__)
+                            with statsd.timer(model_statsd_key.format('steps.get_insert_batch')):
+                                batches[model_cls] = model_cls.get_insert_batch(import_objects)
 
                     with statsd.timer(statsd_key.format('steps.insert')):
                         for model_cls, batch in batches.items():
-                            model_cls.insert_batch(batch)
+                            model_statsd_key = "%s.sync.%s.{0}" % (config.STATSD_PREFIX, model_cls.__name__)
+                            with statsd.timer(model_statsd_key.format('steps.insert')):
+                                model_cls.insert_batch(batch)
 
                 with statsd.timer(statsd_key.format('steps.post_sync')):
                     storage.post_sync(import_key)

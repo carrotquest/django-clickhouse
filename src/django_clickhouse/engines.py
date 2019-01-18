@@ -129,7 +129,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         """
         new_objs = super(CollapsingMergeTree, self).get_insert_batch(model_cls, objects)
 
-        statsd_key = "%s.sync.%s.get_final_versions" % (config.STATSD_PREFIX, model_cls.__name__)
+        statsd_key = "%s.sync.%s.steps.get_final_versions" % (config.STATSD_PREFIX, model_cls.__name__)
         with statsd.timer(statsd_key):
             old_objs = self.get_final_versions(model_cls, new_objs)
 
