@@ -64,7 +64,7 @@ class Storage:
         :return: None
         """
         key = "%s.sync.%s.queue" % (config.STATSD_PREFIX, import_key)
-        statsd.gauge(key, -batch_size, delta=True)
+        statsd.gauge(key, self.operations_count(import_key), delta=True)
 
     def operations_count(self, import_key, **kwargs):
         # type: (str, **dict) -> int
