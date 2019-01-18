@@ -233,11 +233,10 @@ class RedisStorage(Storage):
         else:
             batch_size = 0
 
-        self.post_batch_removed(import_key, batch_size)
-
         # unblock lock after sync completed
         lock_pid_key = self.REDIS_KEY_LOCK_PID.format(import_key=import_key)
         self._redis.delete(lock_pid_key)
+        self.post_batch_removed(import_key, batch_size)
         self.get_lock(import_key, **kwargs).release()
 
         logger.info('django-clickhouse: synced %d items (key: %s)' % (batch_size, import_key))
