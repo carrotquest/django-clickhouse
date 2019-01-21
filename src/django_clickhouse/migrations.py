@@ -7,12 +7,11 @@ from typing import Optional, Set
 from django.db import DEFAULT_DB_ALIAS as DJANGO_DEFAULT_DB_ALIAS
 from django.db.models.signals import post_migrate
 from django.dispatch import receiver
-from infi.clickhouse_orm.database import ServerError
-
-from django_clickhouse.clickhouse_models import ClickHouseModel
+from infi.clickhouse_orm.database import ServerError, DatabaseException
 from infi.clickhouse_orm.migrations import *
 from infi.clickhouse_orm.utils import import_submodules
 
+from .clickhouse_models import ClickHouseModel
 from .configuration import config
 from .database import connections, Database
 from .utils import lazy_class_import, module_exists
@@ -141,6 +140,12 @@ class MigrationHistory(ClickHouseModel):
         except ServerError as ex:
             # Database doesn't exist or table doesn't exist
             if ex.code in {81, 60}:
+                return set()
+            raise ex
+        except DatabaseException as ex:
+            # If database doesn't exist no migrations are applied
+            # This prevents readonly=True + db_exists=False infi exception
+            if str(ex) == 'Database does not exist, and cannot be created under readonly connection':
                 return set()
             raise ex
 
