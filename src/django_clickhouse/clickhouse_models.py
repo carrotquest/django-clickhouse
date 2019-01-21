@@ -19,7 +19,7 @@ from .exceptions import RedisLockTimeoutError
 from .models import ClickHouseSyncModel
 from .query import QuerySet
 from .serializers import Django2ClickHouseModelSerializer
-from .utils import lazy_class_import, exec_multi_db_func
+from .utils import lazy_class_import, exec_multi_arg_func, exec_in_parallel
 
 
 class ClickHouseModelMeta(InfiModelBase):
@@ -160,7 +160,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
             pk_by_db[using].add(pk)
 
         # Selecting data from multiple databases should work faster in parallel, if connections are independent.
-        objs = exec_multi_db_func(
+        objs = exec_multi_arg_func(
             lambda db_alias: cls.get_sync_query_set(db_alias, pk_by_db[db_alias]),
             pk_by_db.keys()
         )
@@ -281,16 +281,21 @@ class ClickHouseMultiModel(ClickHouseModel):
                 if import_objects:
                     batches = {}
                     with statsd.timer(statsd_key.format('steps.get_insert_batch')):
-                        for model_cls in cls.sub_models:
+                        def _sub_model_func(model_cls):
                             model_statsd_key = "%s.sync.%s.{0}" % (config.STATSD_PREFIX, model_cls.__name__)
                             with statsd.timer(model_statsd_key.format('steps.get_insert_batch')):
-                                batches[model_cls] = model_cls.get_insert_batch(import_objects)
+                                return model_cls, model_cls.get_insert_batch(import_objects)
+
+                        res = exec_multi_arg_func(_sub_model_func, cls.sub_models, threads_count=len(cls.sub_models))
+                        batches = dict(res)
 
                     with statsd.timer(statsd_key.format('steps.insert')):
-                        for model_cls, batch in batches.items():
+                        def _sub_model_func(model_cls):
                             model_statsd_key = "%s.sync.%s.{0}" % (config.STATSD_PREFIX, model_cls.__name__)
                             with statsd.timer(model_statsd_key.format('steps.insert')):
-                                model_cls.insert_batch(batch)
+                                model_cls.insert_batch(batches[model_cls])
+
+                        exec_multi_arg_func(_sub_model_func, cls.sub_models, threads_count=len(cls.sub_models))
 
                 with statsd.timer(statsd_key.format('steps.post_sync')):
                     storage.post_sync(import_key)

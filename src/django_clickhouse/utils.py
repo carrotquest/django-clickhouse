@@ -238,25 +238,25 @@ def exec_in_parallel(func: Callable, args_queue: Queue, threads_count: Optional[
     return results
 
 
-def exec_multi_db_func(func: Callable, using: Iterable[str], *args, threads_count: Optional[int] = None,
-                       **kwargs) -> List[Any]:
+def exec_multi_arg_func(func: Callable, split_args: Iterable[Any], *args, threads_count: Optional[int] = None,
+                        **kwargs) -> List[Any]:
     """
-    Executes multiple databases function in parallel threads. Thread functions (func) receive db alias as first argument
+    Executes function in parallel threads. Thread functions (func) receive one of split_args as first argument
     Another arguments passed to functions - args and kwargs
-    If function uses single shard, separate threads are not run, main thread is used.
-    :param func: Function to execute on single database
-    :param using: A list of database aliases to use.
+    If len(split_args) <= 0, separate threads are not run, main thread is used.
+    :param func: Function to execute. Must accept split_arg as first parameter
+    :param split_args: A list of arguments to split threads by
     :param threads_count: Maximum number of threads to run in parallel
     :return: A list of execution results. Order of execution is not guaranteed.
     """
-    using = list(using)
-    if len(using) == 0:
+    split_args = list(split_args)
+    if len(split_args) == 0:
         return []
-    elif len(using) == 1:
-        return [func(using[0], *args, **kwargs)]
+    elif len(split_args) == 1:
+        return [func(split_args[0], *args, **kwargs)]
     else:
         q = Queue()
-        for s in using:
+        for s in split_args:
             q.put(([s] + list(args), kwargs))
 
         return exec_in_parallel(func, q, threads_count=threads_count)
