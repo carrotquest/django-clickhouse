@@ -216,6 +216,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
                 if import_objects:
                     with statsd.timer(statsd_key.format('steps.get_insert_batch')):
                         batch = cls.get_insert_batch(import_objects)
+                        statsd.incr(statsd_key.format('insert_batch'), len(batch))
 
                     with statsd.timer(statsd_key.format('steps.insert')):
                         cls.insert_batch(batch)
@@ -284,7 +285,9 @@ class ClickHouseMultiModel(ClickHouseModel):
                         def _sub_model_func(model_cls):
                             model_statsd_key = "%s.sync.%s.{0}" % (config.STATSD_PREFIX, model_cls.__name__)
                             with statsd.timer(model_statsd_key.format('steps.get_insert_batch')):
-                                return model_cls, model_cls.get_insert_batch(import_objects)
+                                batch = model_cls.get_insert_batch(import_objects)
+                                statsd.incr(statsd_key.format('insert_batch'), len(batch))
+                                return model_cls, batch
 
                         res = exec_multi_arg_func(_sub_model_func, cls.sub_models, threads_count=len(cls.sub_models))
                         batches = dict(res)
