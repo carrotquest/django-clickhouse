@@ -183,7 +183,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         :return:
         """
         if batch:
-            cls.get_database(for_write=True).insert(batch)
+            cls.get_database(for_write=True).insert(batch, batch_size=len(batch))
 
     @classmethod
     def sync_batch_from_storage(cls):
