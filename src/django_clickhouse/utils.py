@@ -1,6 +1,6 @@
 import datetime
 from queue import Queue, Empty
-from threading import Thread, Lock
+from threading import Thread
 
 import os
 from itertools import chain
@@ -193,7 +193,6 @@ def exec_in_parallel(func: Callable, args_queue: Queue, threads_count: Optional[
     :return: A list of results. Order of results is not guaranteed. Element types depends func return type.
     """
     results = []
-    results_lock = Lock()
 
     # If thread_count is not given, we execute all tasks in parallel.
     # If queue has less elements than threads_count, take queue size.
@@ -214,12 +213,12 @@ def exec_in_parallel(func: Callable, args_queue: Queue, threads_count: Optional[
                 # Execute function
                 local_res = func(*args, **kwargs)
 
-                # Write result in lock
-                with results_lock:
-                    results.append(local_res)
+                # Write result. appending a list is thread safe operation according to:
+                # http://effbot.org/pyfaq/what-kinds-of-global-value-mutation-are-thread-safe.htm
+                results.append(local_res)
 
+                # Mark task as complete
                 args_queue.task_done()
-
             except Empty:
                 # No data in queue, finish worker thread
                 finished = True
