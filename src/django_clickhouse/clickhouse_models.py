@@ -6,6 +6,7 @@ from collections import defaultdict
 from itertools import chain
 from typing import List, Tuple, Iterable, Set, Any, Dict
 
+import pytz
 from django.db.models import Model as DjangoModel, QuerySet as DjangoQuerySet
 from infi.clickhouse_orm.database import Database
 from infi.clickhouse_orm.engines import CollapsingMergeTree
@@ -81,6 +82,12 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
 
             item = cls(__multi_init=True)
             item.__dict__.update(cls._defaults)
+
+            for name in kwargs:
+                field = cls._fields[name]
+                kwargs[name] = field.to_python(kwargs[name], pytz.utc)
+                field.validate(kwargs[name])
+
             item.__dict__.update(kwargs)
             result.append(item)
 
