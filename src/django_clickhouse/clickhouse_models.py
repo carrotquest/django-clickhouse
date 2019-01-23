@@ -161,7 +161,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
 
         # Selecting data from multiple databases should work faster in parallel, if connections are independent.
         objs = exec_multi_arg_func(
-            lambda db_alias: cls.get_sync_query_set(db_alias, pk_by_db[db_alias]),
+            lambda db_alias: list(cls.get_sync_query_set(db_alias, pk_by_db[db_alias])),
             pk_by_db.keys()
         )
         return list(chain(*objs))
