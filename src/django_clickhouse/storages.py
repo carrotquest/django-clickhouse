@@ -11,12 +11,13 @@ import logging
 from typing import Any, Optional, List, Tuple
 
 import os
+from six import with_metaclass
 from statsd.defaults.django import statsd
 
 from .configuration import config
 from .exceptions import ConfigurationError, RedisLockTimeoutError
 from .redis import redis_zadd
-from .utils import check_pid, get_subclasses
+from .utils import check_pid, get_subclasses, SingletonMeta
 
 logger = logging.getLogger('django-clickhouse')
 
@@ -143,7 +144,7 @@ class Storage:
         raise NotImplemented()
 
 
-class RedisStorage(Storage):
+class RedisStorage(with_metaclass(SingletonMeta, Storage)):
     """
     Fast in-memory storage made on bases of redis and redis-py library.
     Requires:
