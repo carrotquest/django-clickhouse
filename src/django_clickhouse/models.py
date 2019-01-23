@@ -10,6 +10,7 @@ from django.db import transaction
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.db.models import QuerySet as DjangoQuerySet, Manager as DjangoManager, Model as DjangoModel
+from statsd.defaults.django import statsd
 
 from .configuration import config
 from .storages import Storage
@@ -193,6 +194,7 @@ class ClickHouseSyncModel(DjangoModel):
 
 @receiver(post_save)
 def post_save(sender, instance, **kwargs):
+    statsd.incr('clickhouse.sync.post_save'.format('post_save'), 1)
     if issubclass(sender, ClickHouseSyncModel):
         instance.post_save(kwargs.get('created', False), using=kwargs.get('using'))
 
