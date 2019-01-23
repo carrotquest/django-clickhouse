@@ -1,4 +1,5 @@
 from django.db.models import Model as DjangoModel
+from typing import List, Iterable
 
 from django_clickhouse.utils import model_to_dict
 
@@ -13,17 +14,23 @@ class Django2ClickHouseModelSerializer:
 
         self.exclude_serialize_fields = exclude_fields
 
-    def serialize(self, obj):  # type: (DjangoModel) -> 'ClickHouseModel'
+    def _get_serialize_kwargs(self, obj):
         data = model_to_dict(obj, fields=self.serialize_fields, exclude_fields=self.exclude_serialize_fields)
 
         # Remove None values, they should be initialized as defaults
-        params = {}
+        result = {}
         for key, value in data.items():
             if value is None:
                 pass
             elif isinstance(value, bool):
-                params[key] = int(value)
+                result[key] = int(value)
             else:
-                params[key] = value
+                result[key] = value
 
-        return self._model_cls(**params)
+        return result
+
+    def serialize(self, obj):  # type: (DjangoModel) -> 'ClickHouseModel'
+        return self._model_cls(**self._get_serialize_kwargs(obj))
+
+    def serialize_many(self, objs):  # type: (Iterable[DjangoModel]) -> List['ClickHouseModel']
+        return self._model_cls.init_many((self._get_serialize_kwargs(obj) for obj in objs))

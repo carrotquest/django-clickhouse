@@ -4,7 +4,7 @@ This file defines base abstract models to inherit from
 import datetime
 from collections import defaultdict
 from itertools import chain
-from typing import List, Tuple, Iterable, Set, Any
+from typing import List, Tuple, Iterable, Set, Any, Dict
 
 from django.db.models import Model as DjangoModel, QuerySet as DjangoQuerySet
 from infi.clickhouse_orm.database import Database
@@ -19,7 +19,7 @@ from .exceptions import RedisLockTimeoutError
 from .models import ClickHouseSyncModel
 from .query import QuerySet
 from .serializers import Django2ClickHouseModelSerializer
-from .utils import lazy_class_import, exec_multi_arg_func, exec_in_parallel
+from .utils import lazy_class_import, exec_multi_arg_func
 
 
 class ClickHouseModelMeta(InfiModelBase):
@@ -57,6 +57,34 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
 
     # This attribute is initialized in metaclass, as it must get model class as a parameter
     objects = None  # type: QuerySet
+
+    def __init__(self, **kwargs):
+        multi_init = kwargs.pop('__multi_init', False)
+        if multi_init:
+            pass
+        else:
+            super(ClickHouseModel, self).__init__(**kwargs)
+
+    @classmethod
+    def init_many(cls, kwargs_list):  # type: (Iterable[Dict[str, Any]]) -> List['ClickHouseModel']
+        """
+        Basic __init__ methods if not effective if we need to init 100k objects
+        :return: A list of inited classes
+        """
+        # Assign default values
+        valid_field_names = set(cls._fields.keys())
+        result = []
+        for kwargs in kwargs_list:
+            invalid_fields = set(kwargs.keys()) - valid_field_names
+            if invalid_fields:
+                raise AttributeError('%s does not have a fields called %s' % (cls.__name__, ', '.join(invalid_fields)))
+
+            item = cls(__multi_init=True)
+            item.__dict__.update(cls._defaults)
+            item.__dict__.update(kwargs)
+            result.append(item)
+
+        return result
 
     @classmethod
     def objects_in(cls, database):  # type: (Database) -> QuerySet

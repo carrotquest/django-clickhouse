@@ -26,7 +26,7 @@ class InsertOnlyEngineMixin:
         :return: A list of model_cls objects
         """
         serializer = model_cls.get_django_model_serializer(writable=True)
-        return [serializer.serialize(obj) for obj in objects]
+        return serializer.serialize_many(objects)
 
 
 class MergeTree(InsertOnlyEngineMixin, infi_engines.MergeTree):
