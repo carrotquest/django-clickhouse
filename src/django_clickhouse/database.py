@@ -1,5 +1,5 @@
-from infi.clickhouse_orm.database import Database as InfiDatabase, ServerError
-from infi.clickhouse_orm.migrations import MigrationHistory
+from infi.clickhouse_orm.database import Database as InfiDatabase
+from statsd.defaults.django import statsd
 
 from .configuration import config
 from .exceptions import DBAliasError
@@ -25,6 +25,11 @@ class Database(InfiDatabase):
 
     def _get_applied_migrations(self, migrations_package_name):
         raise NotImplementedError("This method is not supported by django_clickhouse.")
+
+    def _send(self, data, settings=None, stream=False):
+        statsd_key = "%s.query" % (config.STATSD_PREFIX)
+        with statsd.timer(statsd_key):
+            return super(Database, self)._send(data, settings=settings, stream=stream)
 
 
 class ConnectionProxy:
