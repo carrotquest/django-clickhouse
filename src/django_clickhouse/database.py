@@ -26,11 +26,6 @@ class Database(InfiDatabase):
     def _get_applied_migrations(self, migrations_package_name):
         raise NotImplementedError("This method is not supported by django_clickhouse.")
 
-    def _send(self, data, settings=None, stream=False):
-        statsd_key = "%s.query" % config.STATSD_PREFIX
-        with statsd.timer(statsd_key):
-            return super(Database, self)._send(data, settings=settings, stream=stream)
-
 
 class ConnectionProxy:
     _connections = {}
