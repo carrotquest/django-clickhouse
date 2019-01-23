@@ -210,12 +210,12 @@ class RedisStorage(Storage):
             lock.acquire()
             self._redis.set(lock_pid_key, os.getpid())
         except RedisLockTimeoutError:
-            statsd.incr('clickhouse.sync.%s.lock.timeout' % import_key)
+            statsd.incr('%s.sync.%s.lock.timeout' % (config.STATSD_PREFIX, import_key))
             # Lock is busy. But If the process has been killed, I don't want to wait any more.
             # Let's check if pid exists
             pid = int(self._redis.get(lock_pid_key) or 0)
             if pid and not check_pid(pid):
-                statsd.incr('clickhouse.sync.%s.lock.hard_release' % import_key)
+                statsd.incr('%s.sync.%s.lock.hard_release' % (config.STATSD_PREFIX, import_key))
                 logger.warning('django-clickhouse: hard releasing lock "%s" locked by pid %d (process is dead)'
                                % (import_key, pid))
                 self._redis.delete(lock_pid_key)
