@@ -6,6 +6,7 @@ from collections import defaultdict
 from itertools import chain
 from typing import List, Tuple, Iterable, Set, Any, Dict
 
+import logging
 import pytz
 from django.db.models import Model as DjangoModel, QuerySet as DjangoQuerySet
 from infi.clickhouse_orm.database import Database
@@ -21,6 +22,9 @@ from .models import ClickHouseSyncModel
 from .query import QuerySet
 from .serializers import Django2ClickHouseModelSerializer
 from .utils import lazy_class_import, exec_multi_arg_func
+
+
+logger = logging.getLogger('django-clickhouse')
 
 
 class ClickHouseModelMeta(InfiModelBase):
@@ -269,14 +273,22 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         :return: Boolean
         """
         if not cls.sync_enabled:
+            logger.debug('django-clickhouse: need_sync returned False for class %s as sync is deisabled' % cls.__name__)
             return False
 
         last_sync_time = cls.get_storage().get_last_sync_time(cls.get_import_key())
 
         if last_sync_time is None:
+            logger.debug('django-clickhouse: need_sync returned True for class %s as no last sync found' % cls.__name__)
             return True
 
-        return (datetime.datetime.now() - last_sync_time).total_seconds() >= cls.get_sync_delay()
+        res = (datetime.datetime.now() - last_sync_time).total_seconds() >= cls.get_sync_delay()
+        logger.debug('django-clickhouse: need_sync returned %s for class %s as no last sync found'
+                     ' (now: %s, last: %s, delay: %d)'
+                     % (res, cls.__name__, datetime.datetime.now().isoformat(), last_sync_time.isoformat(),
+                        cls.get_sync_delay()))
+
+        return res
 
 
 class ClickHouseMultiModel(ClickHouseModel):

@@ -39,8 +39,6 @@ def clickhouse_auto_sync():
     # Start
     for cls in get_subclasses(ClickHouseModel, recursive=True):
         if cls.need_sync():
-            import datetime
-            print(cls.__name__, datetime.datetime.now().isoformat())
             # Даже если синхронизация вдруг не выполнится, не страшно, что мы установили период синхронизации
             # Она выполнится следующей таской через интервал.
             sync_clickhouse_model.delay(cls)
