@@ -1,9 +1,9 @@
+import datetime
 import importlib
 
 from celery import shared_task
 from django.conf import settings
 from infi.clickhouse_orm.utils import import_submodules
-from statsd.defaults.django import statsd
 
 from django_clickhouse.clickhouse_models import ClickHouseModel
 from .configuration import config
@@ -17,6 +17,7 @@ def sync_clickhouse_model(cls):  # type: (ClickHouseModel) -> None
     :param cls: ClickHouseModel subclass
     :return: None
     """
+    cls.get_storage().set_last_sync_time(cls.get_import_key(), datetime.datetime.now())
     cls.sync_batch_from_storage()
 
 

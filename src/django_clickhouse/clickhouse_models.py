@@ -273,7 +273,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         :return: Boolean
         """
         if not cls.sync_enabled:
-            logger.debug('django-clickhouse: need_sync returned False for class %s as sync is deisabled' % cls.__name__)
+            logger.debug('django-clickhouse: need_sync returned False for class %s as sync is disabled' % cls.__name__)
             return False
 
         last_sync_time = cls.get_storage().get_last_sync_time(cls.get_import_key())
@@ -349,7 +349,6 @@ class ClickHouseMultiModel(ClickHouseModel):
 
                 with statsd.timer(statsd_key.format('steps.post_sync')):
                     storage.post_sync(import_key)
-                    storage.set_last_sync_time(import_key, datetime.datetime.now())
 
         except RedisLockTimeoutError:
             pass  # skip this sync round if lock is acquired by another thread
