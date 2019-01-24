@@ -259,8 +259,6 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
 
                 with statsd.timer(statsd_key.format('steps.post_sync')):
                     storage.post_sync(import_key)
-
-                    storage.set_last_sync_time(import_key, datetime.datetime.now())
         except RedisLockTimeoutError:
             pass  # skip this sync round if lock is acquired by another thread
 
