@@ -2,7 +2,9 @@ import datetime
 
 from django.test import TestCase
 
+from django_clickhouse.exceptions import RedisLockTimeoutError
 from django_clickhouse.storages import RedisStorage
+from tests.clickhouse_models import ClickHouseTestModel, ClickHouseCollapseTestModel
 
 
 class StorageTest(TestCase):
@@ -69,3 +71,15 @@ class StorageTest(TestCase):
         self.assertEqual(2, self.storage.operations_count('test'))
         self.storage.register_operations_wrapped('test', 'insert', 100502)
         self.assertEqual(3, self.storage.operations_count('test'))
+
+    def test_locks(self):
+        # Test that multiple can acquire locks in parallel
+        # And single model can't
+        l = self.storage.get_lock(ClickHouseTestModel.get_import_key())
+        l.acquire()
+        with self.assertRaises(RedisLockTimeoutError):
+            l.acquire()
+
+        l2 = self.storage.get_lock(ClickHouseCollapseTestModel.get_import_key())
+        l2.acquire()
+

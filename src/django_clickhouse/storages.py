@@ -164,7 +164,7 @@ class RedisStorage(with_metaclass(SingletonMeta, Storage)):
 
         from redis import StrictRedis
         self._redis = StrictRedis(**config.REDIS_CONFIG)
-        self._lock = None
+        self._locks = {}
 
     def register_operations(self, import_key, operation, *pks):
         key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
@@ -193,14 +193,14 @@ class RedisStorage(with_metaclass(SingletonMeta, Storage)):
             return []
 
     def get_lock(self, import_key, **kwargs):
-        if self._lock is None:
+        if self._locks.get(import_key) is None:
             from .redis import RedisLock
             lock_key = self.REDIS_KEY_LOCK.format(import_key=import_key)
             lock_timeout = kwargs.get('lock_timeout', config.SYNC_DELAY * 10)
-            self._lock = RedisLock(self._redis, lock_key, timeout=lock_timeout, blocking_timeout=0.1,
-                                   thread_local=False)
+            self._locks[import_key] = RedisLock(self._redis, lock_key, timeout=lock_timeout, blocking_timeout=0.1,
+                                                thread_local=False)
 
-        return self._lock
+        return self._locks[import_key]
 
     def pre_sync(self, import_key, **kwargs):
         # Block process to be single threaded. Default sync delay is 10 * default sync delay.
