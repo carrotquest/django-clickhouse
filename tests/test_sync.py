@@ -166,7 +166,7 @@ class KillTest(TransactionTestCase):
 
         self.assertEqual(len(pg_data), len(ch_data))
         serializer = ClickHouseCollapseTestModel.get_django_model_serializer()
-        self.assertListEqual(ch_data, serializer.serialize_many(pg_data))
+        self.assertListEqual(ch_data, list(serializer.serialize_many(pg_data)))
 
     @classmethod
     def sync_iteration(cls, kill=True):

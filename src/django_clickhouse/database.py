@@ -1,5 +1,6 @@
 from infi.clickhouse_orm.database import Database as InfiDatabase
-from statsd.defaults.django import statsd
+from infi.clickhouse_orm.utils import parse_tsv
+from six import next
 
 from .configuration import config
 from .exceptions import DBAliasError
@@ -25,6 +26,30 @@ class Database(InfiDatabase):
 
     def _get_applied_migrations(self, migrations_package_name):
         raise NotImplementedError("This method is not supported by django_clickhouse.")
+
+    def select_init_many(self, query, model_class, settings=None):
+        """
+        Base select doesn't use init_mult which is ineffective on big result lists
+        """
+        query += ' FORMAT TabSeparatedWithNames'
+        query = self._substitute(query, model_class)
+        r = self._send(query, settings, True)
+        lines = r.iter_lines()
+        field_names = parse_tsv(next(lines))
+
+        kwargs_list = []
+        for line in lines:
+            # skip blank line left by WITH TOTALS modifier
+            if line:
+                values = iter(parse_tsv(line))
+                kwargs = {}
+                for name in field_names:
+                    field = getattr(model_class, name)
+                    kwargs[name] = field.to_python(next(values), self.server_timezone)
+
+                kwargs_list.append(kwargs)
+
+        return model_class.init_many(kwargs_list, database=self)
 
 
 class ConnectionProxy:

@@ -32,5 +32,5 @@ class Django2ClickHouseModelSerializer:
     def serialize(self, obj):  # type: (DjangoModel) -> 'ClickHouseModel'
         return self._model_cls(**self._get_serialize_kwargs(obj))
 
-    def serialize_many(self, objs):  # type: (Iterable[DjangoModel]) -> List['ClickHouseModel']
+    def serialize_many(self, objs):  # type: (Iterable[DjangoModel]) -> Iterable['ClickHouseModel']
         return self._model_cls.init_many((self._get_serialize_kwargs(obj) for obj in objs))

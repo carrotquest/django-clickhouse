@@ -4,7 +4,7 @@ This file defines base abstract models to inherit from
 import datetime
 from collections import defaultdict
 from itertools import chain
-from typing import List, Tuple, Iterable, Set, Any, Dict
+from typing import List, Tuple, Iterable, Set, Any, Dict, Optional
 
 import logging
 import pytz
@@ -71,14 +71,16 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
             super(ClickHouseModel, self).__init__(**kwargs)
 
     @classmethod
-    def init_many(cls, kwargs_list):  # type: (Iterable[Dict[str, Any]]) -> List['ClickHouseModel']
+    def init_many(cls, kwargs_list, database=None):
+        # type: (Iterable[Dict[str, Any]], Optional[Database]) -> Iterable['ClickHouseModel']
         """
         Basic __init__ methods if not effective if we need to init 100k objects
         :return: A list of inited classes
         """
+        assert database is None or isinstance(database, Database), "database must be database.Database instance"
+
         # Assign default values
         valid_field_names = set(cls._fields.keys())
-        result = []
         for kwargs in kwargs_list:
             invalid_fields = set(kwargs.keys()) - valid_field_names
             if invalid_fields:
@@ -86,6 +88,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
 
             item = cls(__multi_init=True)
             item.__dict__.update(cls._defaults)
+            item._database = database
 
             for name in kwargs:
                 field = cls._fields[name]
@@ -93,9 +96,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
                 field.validate(kwargs[name])
 
             item.__dict__.update(kwargs)
-            result.append(item)
-
-        return result
+            yield item
 
     @classmethod
     def objects_in(cls, database):  # type: (Database) -> QuerySet

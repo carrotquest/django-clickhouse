@@ -2,7 +2,7 @@
 This file contains wrappers for infi.clckhouse_orm engines to use in django-clickhouse
 """
 import datetime
-from typing import List, TypeVar, Type, Union
+from typing import List, TypeVar, Type, Union, Iterable
 
 from django.db.models import Model as DjangoModel
 from infi.clickhouse_orm import engines as infi_engines
@@ -23,10 +23,10 @@ class InsertOnlyEngineMixin:
         Gets a list of model_cls instances to insert into database
         :param model_cls: ClickHouseModel subclass to import
         :param objects: A list of django Model instances to sync
-        :return: A list of model_cls objects
+        :return: An iterator of model_cls instances
         """
         serializer = model_cls.get_django_model_serializer(writable=True)
-        return serializer.serialize_many(objects)
+        return list(serializer.serialize_many(objects))
 
 
 class MergeTree(InsertOnlyEngineMixin, infi_engines.MergeTree):
@@ -60,7 +60,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         """.format(version_col=self.version_col, date_col=date_col, pk_column=self.pk_column,
                    min_date=min_date, max_date=max_date, object_pks=','.join(object_pks))
 
-        qs = connections[db_alias].select(query, model_class=model_cls)
+        qs = connections[db_alias].select_init_many(query, model_cls)
         return list(qs)
 
     def _get_final_versions_by_final(self, db_alias, model_cls, min_date, max_date, object_pks, date_col):
@@ -71,7 +71,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         """
         query = query.format(date_col=date_col, pk_column=self.pk_column, min_date=min_date,
                              max_date=max_date, object_pks=','.join(object_pks))
-        qs = connections[db_alias].select(query, model_class=model_cls)
+        qs = connections[db_alias].select_init_many(query, model_cls)
         return list(qs)
 
     def get_final_versions(self, model_cls, objects, date_col=None):
