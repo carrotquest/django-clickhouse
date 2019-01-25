@@ -197,8 +197,9 @@ class RedisStorage(with_metaclass(SingletonMeta, Storage)):
             from .redis import RedisLock
             lock_key = self.REDIS_KEY_LOCK.format(import_key=import_key)
             lock_timeout = kwargs.get('lock_timeout', config.SYNC_DELAY * 10)
-            self._locks[import_key] = RedisLock(self._redis, lock_key, timeout=lock_timeout, blocking_timeout=0.1,
-                                                thread_local=False)
+            blocking_timeout = kwargs.get('blocking_timeout', config.SYNC_DELAY)
+            self._locks[import_key] = RedisLock(self._redis, lock_key, timeout=lock_timeout,
+                                                blocking_timeout=blocking_timeout, thread_local=False)
 
         return self._locks[import_key]
 
