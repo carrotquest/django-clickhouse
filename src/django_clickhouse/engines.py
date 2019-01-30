@@ -136,7 +136,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         old_objs_versions = {}
         for obj in old_objs:
             self.set_obj_sign(obj, -1)
-            old_objs_versions[obj.id] = obj.version
+            old_objs_versions[obj.id] = getattr(obj, self.version_col)
 
         for obj in new_objs:
             self.set_obj_sign(obj, 1)
