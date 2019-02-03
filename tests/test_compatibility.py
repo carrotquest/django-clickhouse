@@ -33,4 +33,11 @@ class NamedTupleTest(TestCase):
         self.assertTupleEqual((1, 2, 4), tuple(TestTuple(a=1, b=2, c=4)))
         self.assertTupleEqual((1, 2, 3), tuple(TestTuple(a=1, b=2)))
 
+    def test_equal(self):
+        TestTuple = namedtuple('TestTuple', ('a', 'b', 'c'))
+        t1 = TestTuple(1, 2, 3)
+        t2 = TestTuple(1, 2, 3)
+        self.assertEqual(t1, t2)
+        self.assertEqual((1, 2, 3), t1)
+
 

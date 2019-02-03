@@ -53,7 +53,7 @@ class SyncTest(TransactionTestCase):
         ClickHouseCollapseTestModel.sync_batch_from_storage()
 
         synced_data = list(self.db.select('SELECT * FROM $table FINAL', model_class=ClickHouseCollapseTestModel))
-        self.assertGreaterEqual(1, len(synced_data))
+        self.assertGreaterEqual(len(synced_data), 1)
         self.assertEqual(obj.value, synced_data[0].value)
         self.assertEqual(obj.id, synced_data[0].id)
 
@@ -76,7 +76,7 @@ class SyncTest(TransactionTestCase):
         ClickHouseCollapseTestModel.sync_batch_from_storage()
 
         synced_data = list(self.db.select('SELECT * FROM $table FINAL', model_class=ClickHouseCollapseTestModel))
-        self.assertGreaterEqual(1, len(synced_data))
+        self.assertGreaterEqual(len(synced_data), 1)
         self.assertEqual(obj.value, synced_data[0].value)
         self.assertEqual(obj.id, synced_data[0].id)
 
@@ -116,7 +116,7 @@ class SyncTest(TransactionTestCase):
         ClickHouseMultiTestModel.sync_batch_from_storage()
 
         synced_data = list(self.db.select('SELECT * FROM $table FINAL', model_class=ClickHouseCollapseTestModel))
-        self.assertGreaterEqual(1, len(synced_data))
+        self.assertGreaterEqual(len(synced_data), 1)
         self.assertEqual(obj.value, synced_data[0].value)
         self.assertEqual(obj.id, synced_data[0].id)
 
@@ -154,9 +154,14 @@ class KillTest(TransactionTestCase):
             self.sync_iteration(False)
             sync_left = storage.operations_count(import_key)
 
-        ch_data = list(connections['default'].select('SELECT * FROM $table FINAL ORDER BY id',
-                                                     model_class=ClickHouseCollapseTestModel))
+        logger.debug('django_clickhouse: sync finished')
+
+        ch_data = list(connections['default'].select_tuples('SELECT * FROM $table FINAL ORDER BY id',
+                                                            model_class=ClickHouseCollapseTestModel))
+        logger.debug('django_clickhouse: got clickhouse data')
+
         pg_data = list(TestModel.objects.all().order_by('id'))
+        logger.debug('django_clickhouse: got postgres data')
 
         if len(pg_data) != len(ch_data):
             absent_ids = set(item.id for item in pg_data) - set(item.id for item in ch_data)
@@ -166,7 +171,8 @@ class KillTest(TransactionTestCase):
 
         self.assertEqual(len(pg_data), len(ch_data))
         serializer = ClickHouseCollapseTestModel.get_django_model_serializer()
-        self.assertListEqual(ch_data, list(serializer.serialize_many(pg_data)))
+        for pg_item, ch_item in zip(pg_data, ch_data):
+            self.assertEqual(ch_item, serializer.serialize(pg_item))
 
     @classmethod
     def sync_iteration(cls, kill=True):

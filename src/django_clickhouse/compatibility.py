@@ -13,10 +13,13 @@ class NamedTuple:
     @classmethod
     @lru_cache(maxsize=32)
     def _get_defaults(cls, exclude):
-        res = cls._defaults
+        res = deepcopy(cls._defaults)
         for k in exclude:
             res.pop(k, None)
         return res
+
+    def _astuple(self):
+        return tuple(self._data)
 
     def __init__(self, *args, **kwargs):
         new_kwargs = deepcopy(self._get_defaults(self._data_cls._fields[:len(args)]))
@@ -32,6 +35,10 @@ class NamedTuple:
 
     def __next__(self):
         return next(self._data_iterator)
+
+    def __eq__(self, other):
+        other_tuple = other._astuple() if isinstance(other, NamedTuple) else other
+        return tuple(self._data) == other_tuple
 
 
 def namedtuple(*args, **kwargs):
