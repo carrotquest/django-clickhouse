@@ -199,3 +199,33 @@ class KillTest(TransactionTestCase):
         p_update.wait()
 
         self._check_data()
+
+
+# Used to profile sync execution time. Disabled by default
+@skip
+class ProfileTest(TransactionTestCase):
+    BATCH_SIZE = 10000
+
+    def setUp(self):
+        ClickHouseTestModel.get_storage().flush()
+        connections['default'].drop_database()
+        connections['default'].create_database()
+        migrate_app('tests', 'default')
+
+        # Disable sync for not interesting models
+        ClickHouseMultiTestModel.sync_enabled = False
+        ClickHouseTestModel.sync_enabled = False
+
+        TestModel.objects.bulk_create([
+            TestModel(created=datetime.datetime.now(), created_date='2018-01-01', value=i)
+            for i in range(self.BATCH_SIZE)
+        ])
+
+    def tearDown(self):
+        # Disable sync for not interesting models
+        ClickHouseMultiTestModel.sync_enabled = True
+        ClickHouseTestModel.sync_enabled = True
+
+    def test_sync(self):
+        ClickHouseCollapseTestModel.sync_batch_size = self.BATCH_SIZE
+        ClickHouseCollapseTestModel.sync_batch_from_storage()
