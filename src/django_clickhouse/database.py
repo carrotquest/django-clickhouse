@@ -4,6 +4,7 @@ from infi.clickhouse_orm.database import Database as InfiDatabase, DatabaseExcep
 from infi.clickhouse_orm.utils import parse_tsv
 from six import next
 from io import BytesIO
+from statsd.defaults.django import statsd
 
 from .configuration import config
 from .exceptions import DBAliasError
@@ -83,6 +84,7 @@ class Database(InfiDatabase):
 
         fields_list = ','.join('`%s`' % name for name in first_tuple._fields)
         fields = [f for name, f in model_class.fields(writable=True).items() if name in first_tuple._fields]
+        statsd_key = "%s.inserted_tuples.%s.{0}" % (config.STATSD_PREFIX, model_class.__name__)
 
         def tuple_to_csv(tup):
             return '\t'.join(field.to_db_string(val, quote=False) for field, val in zip(fields, tup)) + '\n'
@@ -102,6 +104,7 @@ class Database(InfiDatabase):
                 lines += 1
                 if batch_size is not None and lines >= batch_size:
                     # Return the current batch of lines
+                    statsd.incr(statsd_key.format('insert_batch'), lines)
                     yield buf.getvalue()
                     # Start a new batch
                     buf = BytesIO()
@@ -109,6 +112,7 @@ class Database(InfiDatabase):
 
             # Return any remaining lines in partial batch
             if lines:
+                statsd.incr(statsd_key.format('insert_batch'), count=lines)
                 yield buf.getvalue()
 
         self._send(gen())

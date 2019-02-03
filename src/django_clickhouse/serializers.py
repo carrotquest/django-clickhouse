@@ -1,3 +1,6 @@
+import datetime
+from typing import NamedTuple
+
 from django.db.models import Model as DjangoModel
 from django_clickhouse.utils import model_to_dict
 
@@ -28,5 +31,5 @@ class Django2ClickHouseModelSerializer:
 
         return result
 
-    def serialize(self, obj):  # type: (DjangoModel) -> tuple
+    def serialize(self, obj):  # type: (DjangoModel) -> NamedTuple
         return self._result_class(**self._get_serialize_kwargs(obj))

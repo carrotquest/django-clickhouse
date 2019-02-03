@@ -106,7 +106,7 @@ class Storage:
         This method should be called from inner functions.
         :param import_key: A key, returned by ClickHouseModel.get_import_key() method
         :param operation: One of insert, update, delete
-        :param pk: Primary key to find records in main database. Should be string-serializable with str() method.
+        :param pks: Primary keys to find records in main database. Should be string-serializable with str() method.
         :return: None
         """
         if operation not in {'insert', 'update', 'delete'}:

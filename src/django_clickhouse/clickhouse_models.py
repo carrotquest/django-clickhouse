@@ -9,7 +9,6 @@ from itertools import chain
 from typing import List, Tuple, Iterable, Set, Any, Optional
 
 from django.db.models import Model as DjangoModel, QuerySet as DjangoQuerySet
-from infi.clickhouse_orm.database import Database
 from infi.clickhouse_orm.engines import CollapsingMergeTree
 from infi.clickhouse_orm.models import Model as InfiModel, ModelBase as InfiModelBase
 from six import with_metaclass
@@ -17,7 +16,7 @@ from statsd.defaults.django import statsd
 
 from .compatibility import namedtuple
 from .configuration import config
-from .database import connections
+from .database import connections, Database
 from .exceptions import RedisLockTimeoutError
 from .models import ClickHouseSyncModel
 from .query import QuerySet
@@ -233,7 +232,6 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
                 if import_objects:
                     with statsd.timer(statsd_key.format('steps.get_insert_batch')):
                         batch = cls.get_insert_batch(import_objects)
-                        # statsd.incr(statsd_key.format('insert_batch'), len(batch))
 
                     with statsd.timer(statsd_key.format('steps.insert')):
                         cls.insert_batch(batch)
@@ -309,8 +307,6 @@ class ClickHouseMultiModel(ClickHouseModel):
                             model_statsd_key = "%s.sync.%s.{0}" % (config.STATSD_PREFIX, model_cls.__name__)
                             with statsd.timer(model_statsd_key.format('steps.get_insert_batch')):
                                 batch = model_cls.get_insert_batch(import_objects)
-                                # statsd.incr(model_statsd_key.format('insert_batch'), len(batch))
-                                # statsd.incr(statsd_key.format('insert_batch'), len(batch))
                                 return model_cls, batch
 
                         res = exec_multi_arg_func(_sub_model_func, cls.sub_models, threads_count=len(cls.sub_models))

@@ -69,6 +69,9 @@ if __name__ == '__main__':
     parser.add_argument('--once', type=bool, required=False, default=False)
     params = vars(parser.parse_args())
 
+    # Disable registering not needed models
+    TestModel._clickhouse_sync_models = {ClickHouseCollapseTestModel}
+
     func_name = params['process']
     method = locals()[func_name]
     method(**params)
