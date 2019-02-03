@@ -64,7 +64,11 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
 
     @classmethod
     def get_tuple_class(cls, field_names=None, defaults=None):
-        field_names = field_names or tuple(cls.fields(writable=False).keys())
+        field_names = field_names or cls.fields(writable=False).keys()
+
+        # Strange, but sometimes the columns are in different order...
+        field_names = tuple(sorted(field_names))
+
         if defaults:
             defaults_new = deepcopy(cls._defaults)
             defaults_new.update(defaults)

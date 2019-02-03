@@ -20,7 +20,7 @@ logger = logging.getLogger('django-clickhouse')
 
 class SyncTest(TransactionTestCase):
     def setUp(self):
-        self.db = connections['default']
+        self.db = ClickHouseCollapseTestModel.get_database()
         self.db.drop_database()
         self.db.create_database()
         migrate_app('tests', 'default')
@@ -42,7 +42,7 @@ class SyncTest(TransactionTestCase):
         obj.save()
         ClickHouseCollapseTestModel.sync_batch_from_storage()
 
-        # sync_batch_from_storage uses FINAL, so data would be collapsed by now
+        # insert and update came before sync. Only one item will be inserted
         synced_data = list(ClickHouseCollapseTestModel.objects.all())
         self.assertEqual(1, len(synced_data))
         self.assertEqual(obj.value, synced_data[0].value)
@@ -65,7 +65,7 @@ class SyncTest(TransactionTestCase):
         obj.save()
         ClickHouseCollapseTestModel.sync_batch_from_storage()
 
-        # sync_batch_from_storage uses FINAL, so data would be collapsed by now
+        # insert and update came before sync. Only one item will be inserted
         synced_data = list(ClickHouseCollapseTestModel.objects.all())
         self.assertEqual(1, len(synced_data))
         self.assertEqual(obj.value, synced_data[0].value)

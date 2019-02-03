@@ -139,7 +139,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
 
         statsd_key = "%s.sync.%s.steps.get_final_versions" % (config.STATSD_PREFIX, model_cls.__name__)
         with statsd.timer(statsd_key):
-            old_objs = list(self.get_final_versions(model_cls, new_objs))
+            old_objs = self.get_final_versions(model_cls, new_objs)
 
         # -1 sign has been set get_final_versions()
         old_objs_versions = {}
@@ -153,6 +153,6 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         for obj in new_objs:
             pk = getattr(obj, self.pk_column)
             if self.version_col:
-                setattr(obj, self.version_col, old_objs_versions.get(pk, 0) + 1)
+                obj = obj._replace(**{self.version_col: old_objs_versions.get(pk, 0) + 1})
 
             yield obj

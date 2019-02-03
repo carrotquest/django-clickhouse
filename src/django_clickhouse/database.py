@@ -56,10 +56,10 @@ class Database(InfiDatabase):
             # skip blank line left by WITH TOTALS modifier
             if line:
                 values = iter(parse_tsv(line))
-                item = res_class(*(
-                    fields[i].to_python(next(values), self.server_timezone)
-                    for i, r in enumerate(parse_tsv(line))
-                ))
+                item = res_class(**{
+                    field_name: fields[i].to_python(next(values), self.server_timezone)
+                    for i, field_name in enumerate(field_names)
+                })
 
                 yield item
 
@@ -83,7 +83,8 @@ class Database(InfiDatabase):
             raise DatabaseException("You can't insert into read only and system tables")
 
         fields_list = ','.join('`%s`' % name for name in first_tuple._fields)
-        fields = [f for name, f in model_class.fields(writable=True).items() if name in first_tuple._fields]
+        fields_dict = model_class.fields(writable=True)
+        fields = [fields_dict[name] for name in first_tuple._fields]
         statsd_key = "%s.inserted_tuples.%s.{0}" % (config.STATSD_PREFIX, model_class.__name__)
 
         def tuple_to_csv(tup):
@@ -97,7 +98,7 @@ class Database(InfiDatabase):
             buf.write(tuple_to_csv(first_tuple).encode('utf-8'))
 
             # Collect lines in batches of batch_size
-            lines = 2
+            lines = 1
             for t in tuples_iterator:
                 buf.write(tuple_to_csv(t).encode('utf-8'))
 
