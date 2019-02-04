@@ -85,7 +85,7 @@ class Database(InfiDatabase):
         fields_list = ','.join('`%s`' % name for name in first_tuple._fields)
         fields_dict = model_class.fields(writable=True)
         fields = [fields_dict[name] for name in first_tuple._fields]
-        statsd_key = "%s.inserted_tuples.%s.{0}" % (config.STATSD_PREFIX, model_class.__name__)
+        statsd_key = "%s.inserted_tuples.%s" % (config.STATSD_PREFIX, model_class.__name__)
 
         def tuple_to_csv(tup):
             return '\t'.join(field.to_db_string(val, quote=False) for field, val in zip(fields, tup)) + '\n'
@@ -105,7 +105,7 @@ class Database(InfiDatabase):
                 lines += 1
                 if batch_size is not None and lines >= batch_size:
                     # Return the current batch of lines
-                    statsd.incr(statsd_key.format('insert_batch'), lines)
+                    statsd.incr(statsd_key, lines)
                     yield buf.getvalue()
                     # Start a new batch
                     buf = BytesIO()
