@@ -211,13 +211,12 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         Gets one batch from storage and syncs it.
         :return:
         """
+        import_key = cls.get_import_key()
+        storage = cls.get_storage()
+        statsd_key = "%s.sync.%s.{0}" % (config.STATSD_PREFIX, import_key)
+
         try:
-            statsd_key = "%s.sync.%s.{0}" % (config.STATSD_PREFIX, cls.__name__)
             with statsd.timer(statsd_key.format('total')):
-
-                storage = cls.get_storage()
-                import_key = cls.get_import_key()
-
                 with statsd.timer(statsd_key.format('steps.pre_sync')):
                     storage.pre_sync(import_key, lock_timeout=cls.get_lock_timeout())
 
@@ -244,6 +243,10 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
                     storage.post_sync(import_key)
         except RedisLockTimeoutError:
             pass  # skip this sync round if lock is acquired by another thread
+        except Exception as ex:
+            with statsd.timer(statsd_key.format('steps.post_sync')):
+                storage.post_sync_failed(import_key)
+            raise ex
 
     @classmethod
     def need_sync(cls):  # type: () -> bool
@@ -282,13 +285,12 @@ class ClickHouseMultiModel(ClickHouseModel):
         Gets one batch from storage and syncs it.
         :return:
         """
+        import_key = cls.get_import_key()
+        storage = cls.get_storage()
+        statsd_key = "%s.sync.%s.{0}" % (config.STATSD_PREFIX, import_key)
+
         try:
-            statsd_key = "%s.sync.%s.{0}" % (config.STATSD_PREFIX, cls.__name__)
             with statsd.timer(statsd_key.format('total')):
-
-                storage = cls.get_storage()
-                import_key = cls.get_import_key()
-
                 with statsd.timer(statsd_key.format('steps.pre_sync')):
                     storage.pre_sync(import_key, lock_timeout=cls.get_lock_timeout())
 
@@ -329,3 +331,7 @@ class ClickHouseMultiModel(ClickHouseModel):
 
         except RedisLockTimeoutError:
             pass  # skip this sync round if lock is acquired by another thread
+        except Exception as ex:
+            with statsd.timer(statsd_key.format('steps.post_sync')):
+                storage.post_sync_failed(import_key)
+            raise ex

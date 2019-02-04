@@ -57,6 +57,15 @@ class Storage:
         """
         pass
 
+    def post_sync_failed(self, import_key, **kwargs):  # type: (str, **dict) -> None
+        """
+        This method is called after import process has finished with exception.
+        :param import_key: A key, returned by ClickHouseModel.get_import_key() method
+        :param kwargs: Storage dependant arguments
+        :return: None
+        """
+        pass
+
     def post_batch_removed(self, import_key, batch_size):  # type: (str, int) -> None
         """
         This method marks that batch has been removed in statsd
@@ -244,6 +253,12 @@ class RedisStorage(with_metaclass(SingletonMeta, Storage)):
         self.get_lock(import_key, **kwargs).release()
 
         logger.info('django-clickhouse: synced %d items (key: %s)' % (batch_size, import_key))
+
+    def post_sync_failed(self, import_key, **kwargs):
+        # unblock lock after sync completed
+        lock_pid_key = self.REDIS_KEY_LOCK_PID.format(import_key=import_key)
+        self._redis.delete(lock_pid_key)
+        self.get_lock(import_key, **kwargs).release()
 
     def flush(self):
         key_tpls = [

@@ -14,9 +14,7 @@ from django_clickhouse.utils import get_tz_offset, format_datetime, lazy_class_i
 
 class GetTZOffsetTest(TestCase):
     def test_func(self):
-        ts = time.time()
-        utc_offset = (datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)).total_seconds()
-        self.assertEqual(utc_offset / 60, get_tz_offset())
+        self.assertEqual(300, get_tz_offset())
 
 
 class FormatDateTimeTest(TestCase):
