@@ -16,7 +16,6 @@ class Django2ClickHouseModelSerializerTest(TestCase):
     def test_all(self):
         serializer = Django2ClickHouseModelSerializer(ClickHouseTestModel)
         res = serializer.serialize(self.obj)
-        self.assertIsInstance(res, ClickHouseTestModel)
         self.assertEqual(self.obj.id, res.id)
         self.assertEqual(self.obj.value, res.value)
         self.assertEqual(self.obj.created_date, res.created_date)
@@ -24,7 +23,6 @@ class Django2ClickHouseModelSerializerTest(TestCase):
     def test_fields(self):
         serializer = Django2ClickHouseModelSerializer(ClickHouseTestModel, fields=('value',))
         res = serializer.serialize(self.obj)
-        self.assertIsInstance(res, ClickHouseTestModel)
         self.assertEqual(0, res.id)
         self.assertEqual(datetime.date(1970, 1, 1), res.created_date)
         self.assertEqual(self.obj.value, res.value)
@@ -32,7 +30,6 @@ class Django2ClickHouseModelSerializerTest(TestCase):
     def test_exclude_fields(self):
         serializer = Django2ClickHouseModelSerializer(ClickHouseTestModel, exclude_fields=('created_date',))
         res = serializer.serialize(self.obj)
-        self.assertIsInstance(res, ClickHouseTestModel)
         self.assertEqual(datetime.date(1970, 1, 1), res.created_date)
         self.assertEqual(self.obj.id, res.id)
         self.assertEqual(self.obj.value, res.value)

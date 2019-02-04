@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# JetBrains files
+.idea
+
 # C extensions
 *.so
 
@@ -102,3 +105,4 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+/.idea/dataSources.xml
