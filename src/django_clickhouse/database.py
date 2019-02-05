@@ -113,10 +113,11 @@ class Database(InfiDatabase):
 
             # Return any remaining lines in partial batch
             if lines:
-                statsd.incr(statsd_key.format('insert_batch'), count=lines)
+                statsd.incr(statsd_key, lines)
                 yield buf.getvalue()
 
-        self._send(gen())
+        with statsd.timer(statsd_key):
+            self._send(next(gen()))
 
 
 class ConnectionProxy:
