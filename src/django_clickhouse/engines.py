@@ -139,7 +139,9 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
 
         statsd_key = "%s.sync.%s.steps.get_final_versions" % (config.STATSD_PREFIX, model_cls.__name__)
         with statsd.timer(statsd_key):
-            old_objs = self.get_final_versions(model_cls, new_objs)
+            # NOTE I don't use generator pattern here, as it move all time into insert.
+            # That makes hard to understand where real problem is in monitoring
+            old_objs = tuple(self.get_final_versions(model_cls, new_objs))
 
         # -1 sign has been set get_final_versions()
         old_objs_versions = {}

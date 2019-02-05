@@ -234,7 +234,9 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
 
                 if import_objects:
                     with statsd.timer(statsd_key.format('steps.get_insert_batch')):
-                        batch = cls.get_insert_batch(import_objects)
+                        # NOTE I don't use generator pattern here, as it move all time into insert.
+                        # That makes hard to understand where real problem is in monitoring
+                        batch = tuple(cls.get_insert_batch(import_objects))
 
                     with statsd.timer(statsd_key.format('steps.insert')):
                         cls.insert_batch(batch)
@@ -312,7 +314,9 @@ class ClickHouseMultiModel(ClickHouseModel):
                         def _sub_model_func(model_cls):
                             model_statsd_key = "%s.sync.%s.{0}" % (config.STATSD_PREFIX, model_cls.__name__)
                             with statsd.timer(model_statsd_key.format('steps.get_insert_batch')):
-                                batch = model_cls.get_insert_batch(import_objects)
+                                # NOTE I don't use generator pattern here, as it move all time into insert.
+                                # That makes hard to understand where real problem is in monitoring
+                                batch = tuple(model_cls.get_insert_batch(import_objects))
                                 return model_cls, batch
 
                         res = exec_multi_arg_func(_sub_model_func, cls.sub_models, threads_count=len(cls.sub_models))
