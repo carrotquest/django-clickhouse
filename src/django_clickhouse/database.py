@@ -116,8 +116,10 @@ class Database(InfiDatabase):
                 statsd.incr(statsd_key, lines)
                 yield buf.getvalue()
 
-        with statsd.timer(statsd_key):
-            self._send(next(gen()))
+        # For testing purposes
+        for data in gen():
+            with statsd.timer(statsd_key):
+                self._send(data)
 
 
 class ConnectionProxy:
