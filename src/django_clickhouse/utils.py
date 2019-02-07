@@ -116,8 +116,9 @@ def model_to_dict(instance, fields=None, exclude_fields=None):
     """
     data = {}
 
-    opts = instance._meta
-    fields = fields or {f.name for f in chain(opts.concrete_fields, opts.private_fields, opts.many_to_many)}
+    if not fields:
+        opts = instance._meta
+        fields = {f.name for f in chain(opts.concrete_fields, opts.private_fields, opts.many_to_many)}
 
     for name in set(fields) - set(exclude_fields or set()):
         val = getattr(instance, name, None)

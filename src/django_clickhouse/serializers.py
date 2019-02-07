@@ -3,7 +3,7 @@ from typing import NamedTuple
 import pytz
 from django.db.models import Model as DjangoModel
 
-from django_clickhouse.utils import model_to_dict
+from .utils import model_to_dict
 
 
 class Django2ClickHouseModelSerializer:
