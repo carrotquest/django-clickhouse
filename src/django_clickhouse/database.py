@@ -1,3 +1,4 @@
+import logging
 from typing import Generator, Optional, Type, Iterable
 
 from infi.clickhouse_orm.database import Database as InfiDatabase, DatabaseException
@@ -8,6 +9,8 @@ from statsd.defaults.django import statsd
 
 from .configuration import config
 from .exceptions import DBAliasError
+
+logger = logging.getLogger('django-clickhouse')
 
 
 class Database(InfiDatabase):
@@ -119,6 +122,7 @@ class Database(InfiDatabase):
         # For testing purposes
         for data in gen():
             with statsd.timer(statsd_key):
+                logger.debug('django-clickhouse: insert tuple: %s' % data)
                 self._send(data)
 
 
