@@ -13,6 +13,7 @@ class ClickHouseTestModel(ClickHouseModel):
     id = fields.Int32Field()
     created_date = fields.DateField()
     value = fields.Int32Field()
+    str_field = fields.StringField()
 
     engine = ReplacingMergeTree('created_date', ('id',))
     migrate_replicated_db_aliases = ('default', 'secondary')
