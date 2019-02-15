@@ -97,7 +97,8 @@ class Database(InfiDatabase):
             buf = BytesIO()
             query = 'INSERT INTO `%s`.`%s` (%s) FORMAT TabSeparated\n' \
                     % (self.db_name, model_class.table_name(), fields_list)
-            buf.write(query.encode('utf-8'))
+            query_enc = query.encode('utf-8')
+            buf.write(query_enc)
             buf.write(tuple_to_csv(first_tuple).encode('utf-8'))
 
             # Collect lines in batches of batch_size
@@ -112,6 +113,7 @@ class Database(InfiDatabase):
                     yield buf.getvalue()
                     # Start a new batch
                     buf = BytesIO()
+                    buf.write(query_enc)
                     lines = 0
 
             # Return any remaining lines in partial batch
