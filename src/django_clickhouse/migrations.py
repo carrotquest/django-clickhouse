@@ -139,7 +139,9 @@ class MigrationHistory(ClickHouseModel):
             return set(obj.module_name for obj in qs)
         except ServerError as ex:
             # Database doesn't exist or table doesn't exist
-            if ex.code in {81, 60}:
+            # I added string check, when code parsing broke in infi.clickouse_orm
+            # See https://github.com/Infinidat/infi.clickhouse_orm/issues/108
+            if ex.code in {81, 60} or 'Code: 60' in ex.message or 'Code: 81,' in ex.message:
                 return set()
             raise ex
         except DatabaseException as ex:
