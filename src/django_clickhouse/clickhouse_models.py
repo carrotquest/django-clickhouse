@@ -67,7 +67,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         field_names = field_names or cls.fields(writable=False).keys()
 
         # Strange, but sometimes the columns are in different order...
-        field_names = tuple(sorted(field_names))
+        field_names = sorted(field_names)
 
         if defaults:
             defaults_new = deepcopy(cls._defaults)
@@ -75,7 +75,12 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         else:
             defaults_new = cls._defaults
 
-        return namedtuple("%sTuple" % cls.__name__, field_names, defaults=defaults_new)
+        # defaults should be rightmost arguments
+        required_field_names = tuple(name for name in field_names if name not in defaults_new)
+
+        default_field_names, default_values = zip(*defaults_new.items())
+
+        return namedtuple("%sTuple" % cls.__name__, required_field_names + default_field_names, defaults=default_values)
 
     @classmethod
     def objects_in(cls, database):  # type: (Database) -> QuerySet
