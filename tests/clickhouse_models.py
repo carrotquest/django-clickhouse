@@ -12,7 +12,7 @@ class ClickHouseTestModel(ClickHouseModel):
 
     id = fields.Int32Field()
     created_date = fields.DateField()
-    value = fields.Int32Field()
+    value = fields.Int32Field(default=100500)
     str_field = fields.StringField()
 
     engine = ReplacingMergeTree('created_date', ('id',))

@@ -88,11 +88,13 @@ class Database(InfiDatabase):
 
         fields_list = ','.join('`%s`' % name for name in first_tuple._fields)
         fields_dict = model_class.fields(writable=True)
-        fields = [fields_dict[name] for name in first_tuple._fields]
         statsd_key = "%s.inserted_tuples.%s" % (config.STATSD_PREFIX, model_class.__name__)
 
         def tuple_to_csv(tup):
-            return '\t'.join(field.to_db_string(val, quote=False) for field, val in zip(fields, tup)) + '\n'
+            return '\t'.join(
+                fields_dict[field_name].to_db_string(getattr(tup, field_name), quote=False)
+                for field_name in first_tuple._fields
+            ) + '\n'
 
         def gen():
             buf = BytesIO()
