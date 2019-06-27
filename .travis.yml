@@ -35,12 +35,12 @@ python:
   - 3.7
 
 env:
-  - PG=9.6 CLICKHOUSE=19.4 DJANGO=2.1
-  - PG=10 CLICKHOUSE=19.4 DJANGO=2.1
-  - PG=11 CLICKHOUSE=19.4 DJANGO=2.1
-  - PG=9.6 CLICKHOUSE=19.4 DJANGO=2.2
-  - PG=10 CLICKHOUSE=19.4 DJANGO=2.2
-  - PG=11 CLICKHOUSE=19.4 DJANGO=2.2
+  - PG=9.6 DJANGO=2.1
+  - PG=10 DJANGO=2.1
+  - PG=11 DJANGO=2.1
+  - PG=9.6 DJANGO=2.2
+  - PG=10 DJANGO=2.2
+  - PG=11 DJANGO=2.2
 
 before_install:
   # Use default PostgreSQL 11 port
@@ -57,7 +57,7 @@ before_install:
 
 install:
   # Install ClickHouse
-  - sudo apt-get install clickhouse-client=$CLICKHOUSE.* clickhouse-server=$CLICKHOUSE.* clickhouse-common-static=$CLICKHOUSE.*
+  - sudo apt-get install clickhouse-client clickhouse-server clickhouse-common-static
   - sudo service clickhouse-server restart
 
   - pip install -r requirements.txt
