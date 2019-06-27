@@ -1,4 +1,4 @@
-dist: trusty
+dist: xenial
 sudo: required
 language: python
 cache:
@@ -7,21 +7,28 @@ cache:
 
 services:
   - postgresql
-  - rabbitmq
   - redis-server
 addons:
   postgresql: "11"
   apt:
     sources:
       - sourceline: "deb http://repo.yandex.ru/clickhouse/deb/stable/ main/"
+      - sourceline: "deb https://packages.erlang-solutions.com/ubuntu xenial contrib"
+        key_url: "https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc"
+      - sourceline: "deb https://dl.bintray.com/rabbitmq/debian xenial main"
+        key_url: "https://github.com/rabbitmq/signing-keys/releases/download/2.0/rabbitmq-release-signing-key.asc"
     packages:
       - dirmngr
       - apt-transport-https
+      - postgresql-contrib-9.6
       - postgresql-10
+      - postgresql-contrib-10
       - postgresql-client-10
       - postgresql-11
+      - postgresql-contrib-11
       - postgresql-client-11
       - unzip
+      - rabbitmq-server
 
 python:
   - 3.6
