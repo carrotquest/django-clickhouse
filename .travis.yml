@@ -1,4 +1,4 @@
-dist: xenial
+dist: trusty
 sudo: required
 language: python
 cache:
@@ -34,6 +34,9 @@ env:
   - PG=9.6 CLICKHOUSE=19.4 DJANGO=2.1
   - PG=10 CLICKHOUSE=19.4 DJANGO=2.1
   - PG=11 CLICKHOUSE=19.4 DJANGO=2.1
+  - PG=9.6 CLICKHOUSE=19.4 DJANGO=2.2
+  - PG=10 CLICKHOUSE=19.4 DJANGO=2.2
+  - PG=11 CLICKHOUSE=19.4 DJANGO=2.2
 
 before_install:
   # Use default PostgreSQL 11 port
