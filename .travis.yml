@@ -31,9 +31,9 @@ python:
   - 3.7
 
 env:
-  - PG=9.6 CLICKHOUSE=19.4
-  - PG=10 CLICKHOUSE=19.4
-  - PG=11 CLICKHOUSE=19.4
+  - PG=9.6 CLICKHOUSE=19.4 DJANGO=2.1
+  - PG=10 CLICKHOUSE=19.4 DJANGO=2.1
+  - PG=11 CLICKHOUSE=19.4 DJANGO=2.1
 
 before_install:
    # Use default PostgreSQL 11 port
@@ -53,7 +53,8 @@ install:
   - sudo apt-get install clickhouse-client=$CLICKHOUSE.* clickhouse-server=$CLICKHOUSE.* clickhouse-common-static=$CLICKHOUSE.*
   - sudo service clickhouse-server restart
 
-  - pip install -r requirements.conf
+  - pip install -r requirements.txt
+  - pip install -q Django==$DJANGO.*
   - python setup.py -q install
 
 before_script:
