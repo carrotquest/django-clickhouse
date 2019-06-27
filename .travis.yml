@@ -17,12 +17,9 @@ addons:
     packages:
       - dirmngr
       - apt-transport-https
-      - postgresql-contrib-9.6
       - postgresql-10
-      - postgresql-contrib-10
       - postgresql-client-10
       - postgresql-11
-      - postgresql-contrib-11
       - postgresql-client-11
       - unzip
 
