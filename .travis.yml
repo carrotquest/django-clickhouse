@@ -36,9 +36,9 @@ env:
   - PG=11 CLICKHOUSE=19.4 DJANGO=2.1
 
 before_install:
-   # Use default PostgreSQL 11 port
-   - sudo sed -i 's/port = 5433/port = 5432/' /etc/postgresql/11/main/postgresql.conf
-   - sudo cp /etc/postgresql/{10,11}/main/pg_hba.conf
+  # Use default PostgreSQL 11 port
+  - sudo sed -i 's/port = 5433/port = 5432/' /etc/postgresql/11/main/postgresql.conf
+  - sudo cp /etc/postgresql/{10,11}/main/pg_hba.conf
 
   # Start PostgreSQL version we need
   - sudo systemctl stop postgresql && sudo systemctl start postgresql@$PG-main
