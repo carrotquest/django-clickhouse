@@ -41,7 +41,8 @@ class FormatDateTimeTest(TestCase):
         self.assertEqual(format_datetime(dt), self._get_zone_time(dt))
         dt = datetime.datetime(2017, 1, 2, 3, 4, 5, tzinfo=pytz.timezone('Europe/Moscow'))
         offset = int(pytz.timezone('Europe/Moscow').utcoffset(dt).total_seconds() / 60)
-        self.assertEqual(format_datetime(dt, timezone_offset=offset), '2017-01-02 03:04:05')
+        self.assertEqual(format_datetime(dt, timezone_offset=offset),
+                         local_dt_str(datetime.datetime(2017, 1, 2, 3, 4, 5) - datetime.timedelta(minutes=offset*2)))
 
     def test_date_conversion(self):
         dt = datetime.date(2017, 1, 2)
