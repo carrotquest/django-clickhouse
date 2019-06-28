@@ -1,7 +1,5 @@
-import calendar
 import datetime
 from queue import Queue
-from time import gmtime, localtime
 
 import pytz
 from django.test import TestCase
@@ -12,27 +10,13 @@ from django_clickhouse.utils import get_tz_offset, format_datetime, lazy_class_i
     SingletonMeta
 
 
-def system_tz_offset():  # type: () -> int
-    """
-    ClickHouse timezone is equal to system zone offset in seconds.
-    THis function gets system timezone
-    :return: Time zone offset in minutes
-    """
-    return int((calendar.timegm(gmtime()) - calendar.timegm(localtime())) / 60)
-
-
 def local_dt_str(dt) -> str:
     """
     Returns string representation of an aware datetime object, localized by adding system_tz_offset()
     :param dt: Datetime to change
     :return: Formatted string
     """
-    return (dt + datetime.timedelta(minutes=system_tz_offset())).strftime('%Y-%m-%d %H:%M:%S')
-
-
-class GetTZOffsetTest(TestCase):
-    def test_func(self):
-        self.assertEqual(system_tz_offset(), get_tz_offset())
+    return (dt + datetime.timedelta(minutes=get_tz_offset())).strftime('%Y-%m-%d %H:%M:%S')
 
 
 class FormatDateTimeTest(TestCase):
