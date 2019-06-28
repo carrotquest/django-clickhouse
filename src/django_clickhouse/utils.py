@@ -54,6 +54,7 @@ def format_datetime(dt, timezone_offset=0, day_end=False, db_alias=None):
 
     # Dates in ClickHouse are parsed in server local timezone. So I need to add server timezone
     server_dt = dt - datetime.timedelta(minutes=timezone_offset - get_tz_offset(db_alias))
+    print(dt, timezone_offset, get_tz_offset(db_alias))
 
     return server_dt.strftime("%Y-%m-%d %H:%M:%S")
 

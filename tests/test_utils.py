@@ -27,8 +27,8 @@ class FormatDateTimeTest(TestCase):
         :param dt: Объект datetime.datetime
         :return: Строковый ожидаемый результат
         """
-        moscow_minute_offset = dt.utcoffset().total_seconds() / 60
-        zone_h, zone_m = abs(int(moscow_minute_offset / 60)), int(moscow_minute_offset % 60)
+        minute_offset = dt.utcoffset().total_seconds() / 60
+        zone_h, zone_m = abs(int(minute_offset / 60)), int(minute_offset % 60)
 
         return local_dt_str(dt - datetime.timedelta(hours=zone_h, minutes=zone_m))
 
