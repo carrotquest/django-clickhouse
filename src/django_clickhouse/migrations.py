@@ -119,12 +119,11 @@ class MigrationHistory(ClickHouseModel):
         :return: None
         """
         # Ensure that table for migration storing is created
-        for db_alias in cls.migrate_non_replicated_db_aliases:
-            connections[db_alias].create_table(cls)
+        for db_name in cls.migrate_non_replicated_db_aliases:
+            connections[db_name].create_table(cls)
 
-        cls.objects.bulk_create([
-            cls(db_alias=db_alias, package_name=migrations_package, module_name=name, applied=datetime.date.today())
-        ])
+        cls.objects.create(db_alias=db_alias, package_name=migrations_package, module_name=name,
+                           applied=datetime.date.today())
 
     @classmethod
     def get_applied_migrations(cls, db_alias, migrations_package):  # type: (str, str) -> Set[str]
