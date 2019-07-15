@@ -58,6 +58,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     sync_storage = None
     sync_delay = None
     sync_lock_timeout = None
+    sync_formatted_tuples = False
 
     # This attribute is initialized in metaclass, as it must get model class as a parameter
     objects = None  # type: QuerySet
@@ -204,11 +205,11 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     def insert_batch(cls, batch):
         """
         Inserts batch into database
-        :param batch:
+        :param batch: Batch of tuples to insert
         :return:
         """
         if batch:
-            cls.get_database(for_write=True).insert_tuples(cls, batch)
+            cls.get_database(for_write=True).insert_tuples(cls, batch, formatted=cls.sync_formatted_tuples)
 
     @classmethod
     def sync_batch_from_storage(cls):
