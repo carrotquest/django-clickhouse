@@ -58,6 +58,8 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     sync_storage = None
     sync_delay = None
     sync_lock_timeout = None
+
+    # This flag gives ability to disable to_db_string while inserting data, if it is already formatted
     sync_formatted_tuples = False
 
     # This attribute is initialized in metaclass, as it must get model class as a parameter

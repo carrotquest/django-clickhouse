@@ -280,6 +280,16 @@ class RedisStorage(with_metaclass(SingletonMeta, Storage)):
                 key = "%s.sync.%s.queue" % (config.STATSD_PREFIX, model.get_import_key())
                 statsd.gauge(key, 0)
 
+    def flush_import_key(self, import_key):
+        keys = [
+            self.REDIS_KEY_RANK_TEMPLATE.format(import_key=import_key),
+            self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key),
+            self.REDIS_KEY_LOCK.format(import_key=import_key),
+            self.REDIS_KEY_LAST_SYNC_TS.format(import_key=import_key)
+        ]
+        self._redis.delete(*keys)
+        statsd.gauge("%s.sync.%s.queue" % (config.STATSD_PREFIX, import_key), 0)
+
     def get_last_sync_time(self, import_key):
         sync_ts_key = self.REDIS_KEY_LAST_SYNC_TS.format(import_key=import_key)
         res = self._redis.get(sync_ts_key)
