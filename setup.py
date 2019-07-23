@@ -23,5 +23,5 @@ setup(
     description='Django extension to integrate with ClickHouse database',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    # requires=requires
+    requires=requires
 )
