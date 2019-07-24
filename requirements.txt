@@ -3,7 +3,7 @@ pytz
 six
 typing
 psycopg2
-infi.clickhouse-orm (>= 1.0)
+infi.clickhouse-orm
 celery
 statsd
 django-pg-returning
