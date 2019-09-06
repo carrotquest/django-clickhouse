@@ -7,9 +7,10 @@ from typing import Optional, Any, Type, Set
 
 import six
 from django.db import transaction
+from django.db.models.manager import BaseManager
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from django.db.models import QuerySet as DjangoQuerySet, Manager as DjangoManager, Model as DjangoModel
+from django.db.models import QuerySet as DjangoQuerySet, Model as DjangoModel
 from statsd.defaults.django import statsd
 
 from .configuration import config
@@ -116,12 +117,7 @@ if not getattr(BulkUpdateManagerMixin, 'fake', False):
 ClickHouseSyncQuerySet = type('ClickHouseSyncModelQuerySet', tuple(qs_bases), {})
 
 
-class ClickHouseSyncManagerMixin:
-    def get_queryset(self):
-        return ClickHouseSyncQuerySet(model=self.model, using=self._db)
-
-
-class ClickHouseSyncManager(ClickHouseSyncManagerMixin, DjangoManager):
+class ClickHouseSyncManager(BaseManager.from_queryset(ClickHouseSyncQuerySet)):
     pass
 
 
