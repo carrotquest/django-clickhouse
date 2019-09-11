@@ -32,15 +32,17 @@ except ImportError:
         fake = True
 
 
-class ClickHouseSyncUpdateReturningQuerySetMixin(UpdateReturningMixin):
+class ClickHouseSyncRegisterMixin:
+    def _register_ops(self, operation, result):
+        pk_name = self.model._meta.pk.name
+        pk_list = [getattr(item, pk_name) for item in result]
+        self.model.register_clickhouse_operations(operation, *pk_list, using=self.db)
+
+
+class ClickHouseSyncUpdateReturningQuerySetMixin(ClickHouseSyncRegisterMixin, UpdateReturningMixin):
     """
     This mixin adopts methods of django-pg-returning library
     """
-
-    def _register_ops(self, operation, result):
-        pk_name = self.model._meta.pk.name
-        pk_list = result.values_list(pk_name, flat=True)
-        self.model.register_clickhouse_operations(operation, *pk_list, using=self.db)
 
     def update_returning(self, **updates):
         result = super().update_returning(**updates)
@@ -53,7 +55,7 @@ class ClickHouseSyncUpdateReturningQuerySetMixin(UpdateReturningMixin):
         return result
 
 
-class ClickHouseSyncBulkUpdateQuerySetMixin(BulkUpdateManagerMixin):
+class ClickHouseSyncBulkUpdateQuerySetMixin(ClickHouseSyncRegisterMixin, BulkUpdateManagerMixin):
     """
     This mixin adopts methods of django-pg-bulk-update library
     """
@@ -68,11 +70,6 @@ class ClickHouseSyncBulkUpdateQuerySetMixin(BulkUpdateManagerMixin):
             returning = list(returning) + [pk_name]
 
         return returning
-
-    def _register_ops(self, result):
-        pk_name = self.model._meta.pk.name
-        pk_list = [getattr(item, pk_name) for item in result]
-        self.model.register_clickhouse_operations('update', *pk_list, using=self.db)
 
     def bulk_update(self, *args, **kwargs):
         original_returning = kwargs.pop('returning', None)
@@ -89,19 +86,18 @@ class ClickHouseSyncBulkUpdateQuerySetMixin(BulkUpdateManagerMixin):
         return result.count() if original_returning is None else result
 
 
-class ClickHouseSyncQuerySetMixin:
+class ClickHouseSyncQuerySetMixin(ClickHouseSyncRegisterMixin):
     def update(self, **kwargs):
         # BUG I use update_returning method here. But it is not suitable for databases other then PostgreSQL
         # and requires django-pg-update-returning installed
         pk_name = self.model._meta.pk.name
-        res = self.only(pk_name).update_returning(**kwargs).values_list(pk_name, flat=True)
-        self.model.register_clickhouse_operations('update', *res, using=self.db)
+        res = self.only(pk_name).update_returning(**kwargs)
+        self._register_ops('update', res)
         return len(res)
 
     def bulk_create(self, objs, batch_size=None):
         objs = super().bulk_create(objs, batch_size=batch_size)
-        self.model.register_clickhouse_operations('insert', *[obj.pk for obj in objs], using=self.db)
-
+        self._register_ops('insert', objs)
         return objs
 
 
