@@ -75,14 +75,14 @@ class ClickHouseSyncBulkUpdateQuerySetMixin(ClickHouseSyncRegisterMixin, BulkUpd
         original_returning = kwargs.pop('returning', None)
         kwargs['returning'] = self._update_returning_param(original_returning)
         result = super().bulk_update(*args, **kwargs)
-        self._register_ops(result)
+        self._register_ops('update', result)
         return result.count() if original_returning is None else result
 
     def bulk_update_or_create(self, *args, **kwargs):
         original_returning = kwargs.pop('returning', None)
         kwargs['returning'] = self._update_returning_param(original_returning)
         result = super().bulk_update_or_create(*args, **kwargs)
-        self._register_ops(result)
+        self._register_ops('update', result)
         return result.count() if original_returning is None else result
 
 
