@@ -59,6 +59,9 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     sync_delay = None
     sync_lock_timeout = None
 
+    # This flag gives ability to disable to_db_string while inserting data, if it is already formatted
+    sync_formatted_tuples = False
+
     # This attribute is initialized in metaclass, as it must get model class as a parameter
     objects = None  # type: QuerySet
 
@@ -66,16 +69,21 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     def get_tuple_class(cls, field_names=None, defaults=None):
         field_names = field_names or cls.fields(writable=False).keys()
 
-        # Strange, but sometimes the columns are in different order...
-        field_names = tuple(sorted(field_names))
-
         if defaults:
             defaults_new = deepcopy(cls._defaults)
             defaults_new.update(defaults)
         else:
             defaults_new = cls._defaults
 
-        return namedtuple("%sTuple" % cls.__name__, field_names, defaults=defaults_new)
+        # defaults should be rightmost arguments
+        required_field_names = tuple(name for name in field_names if name not in defaults_new)
+
+        default_field_names, default_values = zip(*sorted(defaults_new.items(), key=lambda t: t[0]))
+
+        # Strange, but sometimes the columns are in different order...
+        field_names = tuple(sorted(required_field_names)) + default_field_names
+
+        return namedtuple("%sTuple" % cls.__name__, field_names, defaults=default_values)
 
     @classmethod
     def objects_in(cls, database):  # type: (Database) -> QuerySet
@@ -199,11 +207,11 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     def insert_batch(cls, batch):
         """
         Inserts batch into database
-        :param batch:
+        :param batch: Batch of tuples to insert
         :return:
         """
         if batch:
-            cls.get_database(for_write=True).insert_tuples(cls, batch)
+            cls.get_database(for_write=True).insert_tuples(cls, batch, formatted=cls.sync_formatted_tuples)
 
     @classmethod
     def sync_batch_from_storage(cls):

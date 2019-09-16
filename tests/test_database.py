@@ -31,6 +31,22 @@ class CollapsingMergeTreeTest(TestCase):
             'str_field': str(i)
         } for i in range(10)], [item.to_dict() for item in qs])
 
+    def test_insert_tuples_defaults(self):
+        tuple_class = ClickHouseTestModel.get_tuple_class(defaults={'created_date': date.today()})
+        data = [
+            tuple_class(id=i, str_field=str(i))
+            for i in range(10)
+        ]
+        self.db.insert_tuples(ClickHouseTestModel, data)
+
+        qs = ClickHouseTestModel.objects.order_by('id').all()
+        self.assertListEqual([{
+            'id': i,
+            'created_date': date.today(),
+            'value': 100500,
+            'str_field': str(i)
+        } for i in range(10)], [item.to_dict() for item in qs])
+
     def test_insert_tuples_batch_size(self):
         tuple_class = ClickHouseTestModel.get_tuple_class()
         data = [
