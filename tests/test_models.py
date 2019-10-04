@@ -102,6 +102,16 @@ class TestOperations(TransactionTestCase):
         self.assertListEqual([('update', "%s.%d" % (self.db_alias, item.id)) for item in self.before_op_items],
                              self.storage.get_operations(self.clickhouse_model.get_import_key(), 10))
 
+    def test_bulk_create_returning(self):
+        items = [
+            self.django_model(created_date=datetime.date.today(), created=datetime.datetime.now(), value=i)
+            for i in range(5)
+        ]
+        items = self.django_model.objects.bulk_create_returning(items)
+        self.assertEqual(5, len(items))
+        self.assertSetEqual({('insert', "%s.%d" % (self.db_alias, instance.pk)) for instance in items},
+                            set(self.storage.get_operations(self.clickhouse_model.get_import_key(), 10)))
+
     def test_qs_update_returning(self):
         self.django_model.objects.filter(pk=1).update_returning(created_date=datetime.date.today())
         self.assertListEqual([('update', "%s.1" % self.db_alias)],
@@ -121,6 +131,19 @@ class TestOperations(TransactionTestCase):
         # Delete, after which updated element will not suit update conditions
         self.django_model.objects.filter(created_date__lt=datetime.date.today()).delete_returning()
         self.assertListEqual([('delete', "%s.%d" % (self.db_alias, item.id)) for item in self.before_op_items],
+                             self.storage.get_operations(self.clickhouse_model.get_import_key(), 10))
+
+    def test_save_returning(self):
+        # INSERT operation
+        instance = self.django_model(created_date=datetime.date.today(), created=datetime.datetime.now(), value=2)
+        instance.save_returning()
+        self.assertListEqual([('insert', "%s.%d" % (self.db_alias, instance.pk))],
+                             self.storage.get_operations(self.clickhouse_model.get_import_key(), 10))
+
+        # UPDATE operation
+        instance.save_returning()
+        self.assertListEqual([('insert', "%s.%d" % (self.db_alias, instance.pk)),
+                              ('update', "%s.%d" % (self.db_alias, instance.pk))],
                              self.storage.get_operations(self.clickhouse_model.get_import_key(), 10))
 
     def test_delete(self):

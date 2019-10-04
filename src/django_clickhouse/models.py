@@ -102,7 +102,7 @@ class ClickHouseSyncQuerySetMixin(ClickHouseSyncRegisterMixin):
 
 
 # I add library dependant mixins to base classes only if libraries are installed
-qs_bases = [ClickHouseSyncQuerySetMixin, DjangoQuerySet]
+qs_bases = [ClickHouseSyncQuerySetMixin]
 
 if not getattr(UpdateReturningMixin, 'fake', False):
     qs_bases.append(ClickHouseSyncUpdateReturningQuerySetMixin)
@@ -110,6 +110,9 @@ if not getattr(UpdateReturningMixin, 'fake', False):
 if not getattr(BulkUpdateManagerMixin, 'fake', False):
     qs_bases.append(ClickHouseSyncBulkUpdateQuerySetMixin)
 
+
+# QuerySet must be the last one, so it can be redeclared in mixins
+qs_bases.append(DjangoQuerySet)
 ClickHouseSyncQuerySet = type('ClickHouseSyncModelQuerySet', tuple(qs_bases), {})
 
 
