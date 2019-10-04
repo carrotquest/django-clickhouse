@@ -159,7 +159,7 @@ def int_ranges(items: Iterable[int]) -> Iterator[Tuple[int, int]]:
             yield interval
 
     if interval_start is None:
-        raise StopIteration()
+        return
     else:
         yield interval_start, prev_item
 

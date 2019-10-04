@@ -16,5 +16,32 @@
       "created_date": "2018-02-01",
       "created": "2018-02-01 00:00:00"
     }
+  },
+  {
+    "model": "tests.TestModel",
+    "pk": 3,
+    "fields": {
+      "value": 300,
+      "created_date": "2018-03-01",
+      "created": "2018-03-01 00:00:00"
+    }
+  },
+  {
+    "model": "tests.TestModel",
+    "pk": 4,
+    "fields": {
+      "value": 400,
+      "created_date": "2018-04-01",
+      "created": "2018-04-01 00:00:00"
+    }
+  },
+  {
+    "model": "tests.TestModel",
+    "pk": 5,
+    "fields": {
+      "value": 500,
+      "created_date": "2018-05-01",
+      "created": "2018-05-01 00:00:00"
+    }
   }
 ]

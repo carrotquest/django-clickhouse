@@ -1,8 +1,5 @@
 import sys
-from collections import namedtuple as basenamedtuple, Mapping
-from functools import lru_cache
-
-from copy import deepcopy
+from collections import namedtuple as basenamedtuple
 
 
 def namedtuple(*args, **kwargs):
@@ -13,14 +10,9 @@ def namedtuple(*args, **kwargs):
     :return: namedtuple class
     """
     if sys.version_info < (3, 7):
-        defaults = kwargs.pop('defaults', {})
+        defaults = kwargs.pop('defaults', ())
         TupleClass = basenamedtuple(*args, **kwargs)
-        TupleClass.__new__.__defaults__ = (None,) * len(TupleClass._fields)
-        if isinstance(defaults, Mapping):
-            prototype = TupleClass(**defaults)
-        else:
-            prototype = TupleClass(*defaults)
-        TupleClass.__new__.__defaults__ = tuple(prototype)
+        TupleClass.__new__.__defaults__ = (None,) * (len(TupleClass._fields) - len(defaults)) + tuple(defaults)
         return TupleClass
     else:
         return basenamedtuple(*args, **kwargs)

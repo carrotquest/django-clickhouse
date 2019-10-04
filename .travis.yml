@@ -1,0 +1,84 @@
+dist: xenial
+sudo: required
+language: python
+cache:
+  pip: true
+  apt: true
+
+services:
+  - postgresql
+  - redis-server
+addons:
+  postgresql: "11"
+  apt:
+    sources:
+      - sourceline: "deb http://repo.yandex.ru/clickhouse/deb/stable/ main/"
+      - sourceline: "deb https://packages.erlang-solutions.com/ubuntu xenial contrib"
+        key_url: "https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc"
+      - sourceline: "deb https://dl.bintray.com/rabbitmq/debian xenial main"
+        key_url: "https://github.com/rabbitmq/signing-keys/releases/download/2.0/rabbitmq-release-signing-key.asc"
+    packages:
+      - dirmngr
+      - apt-transport-https
+      - postgresql-contrib-9.6
+      - postgresql-10
+      - postgresql-contrib-10
+      - postgresql-client-10
+      - postgresql-11
+      - postgresql-contrib-11
+      - postgresql-client-11
+      - unzip
+      - rabbitmq-server
+
+python:
+  - 3.6
+  - 3.7
+
+env:
+  - PG=9.6 DJANGO=2.1
+  - PG=10 DJANGO=2.1
+  - PG=11 DJANGO=2.1
+  - PG=9.6 DJANGO=2.2
+  - PG=10 DJANGO=2.2
+  - PG=11 DJANGO=2.2
+
+before_install:
+  # Use default PostgreSQL 11 port
+  - sudo sed -i 's/port = 5433/port = 5432/' /etc/postgresql/11/main/postgresql.conf
+  - sudo cp /etc/postgresql/{10,11}/main/pg_hba.conf
+
+  # Start PostgreSQL version we need
+  - sudo systemctl stop postgresql && sudo systemctl start postgresql@$PG-main
+
+  # ClickHouse sources
+  - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv E0C56BD4
+  - sudo apt-get update
+
+
+install:
+  # Install ClickHouse
+  - sudo apt-get install clickhouse-client clickhouse-server clickhouse-common-static
+  - sudo service clickhouse-server restart
+
+  - pip install -r requirements.txt
+  - pip install -q Django==$DJANGO.*
+  - pip install redis
+  - python setup.py -q install
+
+before_script:
+  # Output software versions
+  - erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().'  -noshell
+  - rabbitmqctl status | grep "RabbitMQ"
+  - clickhouse-client --query "SELECT version();"
+  - psql -tc 'SHOW server_version' -U postgres
+
+  - psql -tc 'SHOW server_version' -U postgres
+  - psql -c 'CREATE ROLE test;' -U postgres
+  - psql -c 'ALTER ROLE test WITH SUPERUSER;' -U postgres
+  - psql -c 'ALTER ROLE test WITH LOGIN;' -U postgres
+  - psql -c "ALTER ROLE test PASSWORD 'test';" -U postgres
+  - psql -c 'CREATE DATABASE test OWNER test;' -U postgres
+  - psql -c 'CREATE DATABASE test2 OWNER test;' -U postgres
+
+script:
+  python runtests.py
