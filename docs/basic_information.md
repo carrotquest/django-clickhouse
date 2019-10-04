@@ -25,8 +25,10 @@ It is based on [infi.clickhouse-orm](https://github.com/Infinidat/infi.clickhous
 
 ### Optional libraries
 * [redis-py](https://redis-py.readthedocs.io/en/latest/) for [RedisStorage](storages.md#redis_storage)
-* [django-pg-returning](https://travis-ci.com/M1hacka/django-pg-returning) 
+* [django-pg-returning](https://github.com/M1hacka/django-pg-returning) 
   for optimizing registering updates in [PostgreSQL](https://www.postgresql.org/)
+* [django-pg-bulk-update](https://github.com/M1hacka/django-pg-bulk-update)
+  for performing effective bulk update operation in [PostgreSQL](https://www.postgresql.org/)
 
 ## <a name="installation">Installation</a>
 Install via pip:  
