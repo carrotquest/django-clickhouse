@@ -116,7 +116,7 @@ qs_bases.append(DjangoQuerySet)
 ClickHouseSyncQuerySet = type('ClickHouseSyncModelQuerySet', tuple(qs_bases), {})
 
 
-class ClickHouseSyncManager(BaseManager.from_queryset(ClickHouseSyncQuerySet)):
+class ClickHouseSyncManager(BaseManager.from_queryset(ClickHouseSyncQuerySet), models.Manager):
     pass
 
 
