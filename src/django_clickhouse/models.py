@@ -7,8 +7,7 @@ from typing import Optional, Any, Type, Set
 
 import six
 from django.db import transaction
-from django.db.models import Manager
-from django.db.models import QuerySet as DjangoQuerySet, Model as DjangoModel
+from django.db.models import QuerySet as DjangoQuerySet, Model as DjangoModel, Manager as DjangoManager
 from django.db.models.manager import BaseManager
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
@@ -116,7 +115,7 @@ qs_bases.append(DjangoQuerySet)
 ClickHouseSyncQuerySet = type('ClickHouseSyncModelQuerySet', tuple(qs_bases), {})
 
 
-class ClickHouseSyncManager(BaseManager.from_queryset(ClickHouseSyncQuerySet), Manager):
+class ClickHouseSyncManager(BaseManager.from_queryset(ClickHouseSyncQuerySet), DjangoManager):
     pass
 
 
