@@ -48,9 +48,17 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     django_model = None
     django_model_serializer = Django2ClickHouseModelSerializer
 
+    # Servers, model is replicated to.
+    # Router takes random database to read or write from.
     read_db_aliases = (config.DEFAULT_DB_ALIAS,)
     write_db_aliases = (config.DEFAULT_DB_ALIAS,)
+
+    # Databases to perform replicated migration queries, such as ALTER TABLE.
+    # Migration is applied to random database from the list.
     migrate_replicated_db_aliases = (config.DEFAULT_DB_ALIAS,)
+
+    # Databases to perform non-replicated migrations (CREATE TABLE, DROP TABLE).
+    # Migration is applied to all databases from the list.
     migrate_non_replicated_db_aliases = (config.DEFAULT_DB_ALIAS,)
 
     sync_enabled = False
