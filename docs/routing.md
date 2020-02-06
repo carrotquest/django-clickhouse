@@ -15,9 +15,9 @@ Unlike traditional relational databases, [ClickHouse](https://clickhouse.yandex/
  3) To make system more extendable we need default routing, per model routing and router class for complex cases.
  
 ## Introduction
-All database connections are defined in [CLICKHOUSE_DATABASES](configuration.md#databases) setting.
+All database connections are defined in [CLICKHOUSE_DATABASES](configuration.md#clickhouse_databases) setting.
  Each connection has it's alias name to refer with.
- If no routing is configured, [CLICKHOUSE_DEFAULT_DB_ALIAS](configuration.md#default_db_alias) is used.
+ If no routing is configured, [CLICKHOUSE_DEFAULT_DB_ALIAS](configuration.md#clickhouse_default_db_alias) is used.
  
 ## Router
 Router is a class, defining 3 methods:
@@ -29,7 +29,7 @@ Router is a class, defining 3 methods:
   Checks if migration `operation` should be applied in django application `app_label` on database `db_alias`.
   Optional `model` field can be used to determine migrations on concrete model.
 
-By default [CLICKHOUSE_DATABASE_ROUTER](configuration.md#database_router) is used.
+By default [CLICKHOUSE_DATABASE_ROUTER](configuration.md#clickhouse_database_router) is used.
  It gets routing information from model fields, described below.  
  
 ## ClickHouseModel routing attributes
@@ -54,7 +54,8 @@ class MyModel(ClickHouseModel):
  ```
 
 ## Settings database in QuerySet
-Database can be set in each [QuerySet](# TODO) explicitly by using one of methods:
+<!--- TODO Add link --->
+Database can be set in each [QuerySet]() explicitly by using one of methods:
 * With [infi approach](https://github.com/Infinidat/infi.clickhouse_orm/blob/develop/docs/querysets.md#querysets): `MyModel.objects_in(db_object).filter(id__in=[1,2,3]).count()`
 * With `using()` method: `MyModel.objects.filter(id__in=[1,2,3]).using(db_alias).count()`
 

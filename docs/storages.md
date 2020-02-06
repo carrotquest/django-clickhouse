@@ -49,18 +49,18 @@ Each method of abstract `Storage` class takes `kwargs` parameters, which can be 
   
 * `post_sync_failed(import_key: str, exception: Exception, **kwargs) -> None:`  
   Called if any exception has occurred during import process. It cleans storage after unsuccessful import.
-  Note that if import process is hardly killed (with OOM, for instance) this method is not called.
+  Note that if import process is hardly killed (with OOM killer, for instance) this method is not called.
   
 * `flush() -> None`  
   *Dangerous*. Drops all data, kept by storage. It is used for cleaning up between tests.
 
 
 ## Predefined storages
-### <a name="redis_storage">RedisStorage</a>
+### RedisStorage
 This storage uses [Redis database](https://redis.io/) as intermediate storage. 
 To communicate with Redis it uses [redis-py](https://redis-py.readthedocs.io/en/latest/) library. 
 It is not required, but should be installed to use RedisStorage. 
-In order to use RedisStorage you must also fill [CLICKHOUSE_REDIS_CONFIG](configuration.md#redis_config) parameter.
+In order to use RedisStorage you must also fill [CLICKHOUSE_REDIS_CONFIG](configuration.md#clickhouse_redis_config) parameter.
 
 Stored operation contains:
 * Django database alias where original record can be found.

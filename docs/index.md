@@ -5,7 +5,9 @@
   * [Features](basic_information.md#features)
   * [Requirements](basic_information.md#requirements)
   * [Installation](basic_information.md#installation)
+  * [Design motivation](motivation.md)
 * Usage  
+  * [Overview](overview.md)
   * [Models](models.md)
      * [DjangoModel](models.md#DjangoModel)
      * [ClickHouseModel](models.md#ClickHouseModel)
@@ -14,4 +16,6 @@
   * [Migrations](migrations.md)
   * [Synchronization](synchronization.md)
     * [Storages](storages.md)
-        * [RedisStorage](storages.md#redis_storage)
+        * [RedisStorage](storages.md#redisstorage)
+    * [Monitoring](monitoring.md)
+    * [Performance notes](performance.md)

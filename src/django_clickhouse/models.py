@@ -188,7 +188,7 @@ class ClickHouseSyncModel(DjangoModel):
 
 @receiver(post_save)
 def post_save(sender, instance, **kwargs):
-    statsd.incr('clickhouse.sync.post_save'.format('post_save'), 1)
+    statsd.incr('%s.sync.post_save' % config.STATSD_PREFIX, 1)
     if issubclass(sender, ClickHouseSyncModel):
         instance.post_save(kwargs.get('created', False), using=kwargs.get('using'))
 
