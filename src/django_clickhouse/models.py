@@ -13,6 +13,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from statsd.defaults.django import statsd
 
+from .compatibility import update_returning_pk
 from .configuration import config
 from .storages import Storage
 from .utils import lazy_class_import
@@ -32,9 +33,9 @@ except ImportError:
 
 
 class ClickHouseSyncRegisterMixin:
-    def _register_ops(self, operation, result):
+    def _register_ops(self, operation, result, as_int: bool = False):
         pk_name = self.model._meta.pk.name
-        pk_list = [getattr(item, pk_name) for item in result]
+        pk_list = [getattr(item, pk_name) if isinstance(item, DjangoModel) else item for item in result]
         self.model.register_clickhouse_operations(operation, *pk_list, using=self.db)
 
 
@@ -87,12 +88,9 @@ class ClickHouseSyncBulkUpdateQuerySetMixin(ClickHouseSyncRegisterMixin, BulkUpd
 
 class ClickHouseSyncQuerySetMixin(ClickHouseSyncRegisterMixin):
     def update(self, **kwargs):
-        # BUG I use update_returning method here. But it is not suitable for databases other then PostgreSQL
-        # and requires django-pg-update-returning installed
-        pk_name = self.model._meta.pk.name
-        res = self.only(pk_name).update_returning(**kwargs)
-        self._register_ops('update', res)
-        return len(res)
+        pks = update_returning_pk(self, kwargs)
+        self._register_ops('update', pks)
+        return len(pks)
 
     def bulk_create(self, objs, batch_size=None):
         objs = super().bulk_create(objs, batch_size=batch_size)
@@ -168,7 +166,7 @@ class ClickHouseSyncModel(DjangoModel):
         :param using: Database alias registered instances are from
         :return: None
         """
-        model_pks = ['%s.%d' % (using or config.DEFAULT_DB_ALIAS, pk) for pk in model_pks]
+        model_pks = ['%s.%s' % (using or config.DEFAULT_DB_ALIAS, pk) for pk in model_pks]
 
         def _on_commit():
             for model_cls in cls.get_clickhouse_sync_models():
