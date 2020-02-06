@@ -10,8 +10,7 @@ You can change `CLICKHOUSE_` prefix in settings using this parameter to anything
 ### CLICKHOUSE_DATABASES
 Defaults to: `{}`  
 A dictionary, defining databases in django-like style.  
-<!--- TODO Add link  --->
-Key is an alias to communicate with this database in [connections]() and [using]().  
+Key is an alias to communicate with this database in [connections](databases.md#getting-database-objects) and [using](routing.md#settings-database-in-queryset).  
 Value is a configuration dict with parameters:
 * [infi.clickhouse_orm database parameters](https://github.com/Infinidat/infi.clickhouse_orm/blob/develop/docs/class_reference.md#database)
 * `migrate: bool` - indicates if this database should be migrated. See [migrations](migrations.md).  
@@ -35,8 +34,7 @@ CLICKHOUSE_DATABASES = {
 
 ### CLICKHOUSE_DEFAULT_DB_ALIAS
 Defaults to: `'default'`  
-<!--- TODO Add link  --->
-A database alias to use in [QuerySets]() if direct [using]() is not specified.
+A database alias to use in [QuerySets](queries.md) if direct [using](routing.md#settings-database-in-queryset) is not specified.
 
 ### CLICKHOUSE_SYNC_STORAGE
 Defaults to: `'django_clickhouse.storages.RedisStorage'`  

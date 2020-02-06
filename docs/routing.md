@@ -54,8 +54,7 @@ class MyModel(ClickHouseModel):
  ```
 
 ## Settings database in QuerySet
-<!--- TODO Add link --->
-Database can be set in each [QuerySet]() explicitly by using one of methods:
+Database can be set in each [QuerySet](queries.md) explicitly by using one of methods:
 * With [infi approach](https://github.com/Infinidat/infi.clickhouse_orm/blob/develop/docs/querysets.md#querysets): `MyModel.objects_in(db_object).filter(id__in=[1,2,3]).count()`
 * With `using()` method: `MyModel.objects.filter(id__in=[1,2,3]).using(db_alias).count()`
 
