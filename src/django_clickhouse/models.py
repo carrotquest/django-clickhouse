@@ -74,7 +74,7 @@ class ClickHouseSyncBulkUpdateQuerySetMixin(ClickHouseSyncRegisterMixin, BulkUpd
 
     def _decorate_method(self, name: str, operation: str, args, kwargs):
         if not hasattr(super(), name):
-            raise AttributeError(name)
+            raise AttributeError("QuerySet has no attribute %s. Is django-pg-bulk-update library installed?" % name)
 
         func = getattr(super(), name)
         original_returning = kwargs.pop('returning', None)

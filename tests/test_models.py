@@ -1,5 +1,7 @@
 import datetime
+from unittest import skipIf
 
+import django
 from django.test import TransactionTestCase
 from django.utils.timezone import now
 
@@ -61,6 +63,7 @@ class TestOperations(TransactionTestCase):
         self.assertSetEqual({('insert', "%s.%d" % (self.db_alias, instance.pk)) for instance in items},
                             set(self.storage.get_operations(self.clickhouse_model.get_import_key(), 10)))
 
+    @skipIf(django.VERSION < (2, 2), "bulk_update method has been introduced in django 2.2")
     def test_native_bulk_update(self):
         items = list(self.django_model.objects.filter(pk__in={1, 2}))
         for instance in items:

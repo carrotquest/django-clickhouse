@@ -33,6 +33,7 @@ addons:
 python:
   - 3.6
   - 3.7
+  - 3.8
 
 env:
   - PG=9.6 DJANGO=2.1
@@ -41,6 +42,9 @@ env:
   - PG=9.6 DJANGO=2.2
   - PG=10 DJANGO=2.2
   - PG=11 DJANGO=2.2
+  - PG=9.6 DJANGO=3.0
+  - PG=10 DJANGO=3.0
+  - PG=11 DJANGO=3.0
 
 before_install:
   # Use default PostgreSQL 11 port
@@ -60,9 +64,8 @@ install:
   - sudo apt-get install clickhouse-client clickhouse-server clickhouse-common-static
   - sudo service clickhouse-server restart
 
-  - pip install -r requirements.txt
+  - pip install -r requirements-test.txt
   - pip install -q Django==$DJANGO.*
-  - pip install redis
   - python setup.py -q install
 
 before_script:
