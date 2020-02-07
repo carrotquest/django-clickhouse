@@ -7,17 +7,16 @@ from typing import Optional, Any, Type, Set
 
 import six
 from django.db import transaction
-from django.db.models import Manager as DjangoManager
+from django.db.models import QuerySet as DjangoQuerySet, Model as DjangoModel, Manager as DjangoManager
 from django.db.models.manager import BaseManager
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from django.db.models import QuerySet as DjangoQuerySet, Model as DjangoModel
 from statsd.defaults.django import statsd
 
+from .compatibility import update_returning_pk
 from .configuration import config
 from .storages import Storage
 from .utils import lazy_class_import
-
 
 try:
     from django_pg_returning.manager import UpdateReturningMixin
@@ -34,9 +33,9 @@ except ImportError:
 
 
 class ClickHouseSyncRegisterMixin:
-    def _register_ops(self, operation, result):
+    def _register_ops(self, operation, result, as_int: bool = False):
         pk_name = self.model._meta.pk.name
-        pk_list = [getattr(item, pk_name) for item in result]
+        pk_list = [getattr(item, pk_name) if isinstance(item, DjangoModel) else item for item in result]
         self.model.register_clickhouse_operations(operation, *pk_list, using=self.db)
 
 
@@ -72,34 +71,50 @@ class ClickHouseSyncBulkUpdateQuerySetMixin(ClickHouseSyncRegisterMixin, BulkUpd
 
         return returning
 
-    def bulk_update(self, *args, **kwargs):
+    def _decorate_method(self, name: str, operation: str, args, kwargs):
+        if not hasattr(super(), name):
+            raise AttributeError("QuerySet has no attribute %s. Is django-pg-bulk-update library installed?" % name)
+
+        func = getattr(super(), name)
         original_returning = kwargs.pop('returning', None)
         kwargs['returning'] = self._update_returning_param(original_returning)
-        result = super().bulk_update(*args, **kwargs)
-        self._register_ops('update', result)
+        result = func(*args, **kwargs)
+        self._register_ops(operation, result)
         return result.count() if original_returning is None else result
 
-    def bulk_update_or_create(self, *args, **kwargs):
-        original_returning = kwargs.pop('returning', None)
-        kwargs['returning'] = self._update_returning_param(original_returning)
-        result = super().bulk_update_or_create(*args, **kwargs)
-        self._register_ops('update', result)
-        return result.count() if original_returning is None else result
+    def pg_bulk_update(self, *args, **kwargs):
+        return self._decorate_method('pg_bulk_update', 'update', args, kwargs)
+
+    def pg_bulk_update_or_create(self, *args, **kwargs):
+        return self._decorate_method('pg_bulk_update_or_create', 'update', args, kwargs)
+
+    def pg_bulk_create(self, *args, **kwargs):
+        return self._decorate_method('pg_bulk_create', 'insert', args, kwargs)
 
 
 class ClickHouseSyncQuerySetMixin(ClickHouseSyncRegisterMixin):
     def update(self, **kwargs):
-        # BUG I use update_returning method here. But it is not suitable for databases other then PostgreSQL
-        # and requires django-pg-update-returning installed
-        pk_name = self.model._meta.pk.name
-        res = self.only(pk_name).update_returning(**kwargs)
-        self._register_ops('update', res)
-        return len(res)
+        pks = update_returning_pk(self, kwargs)
+        self._register_ops('update', pks)
+        return len(pks)
 
     def bulk_create(self, objs, batch_size=None):
         objs = super().bulk_create(objs, batch_size=batch_size)
         self._register_ops('insert', objs)
         return objs
+
+    def bulk_update(self, objs, *args, **kwargs):
+        objs = list(objs)
+
+        # No need to register anything, if there are no objects.
+        # If objects are not models, django-pg-bulk-update method is called and pg_bulk_update will register items
+        if len(objs) == 0 or not isinstance(objs[0], DjangoModel):
+            return super().bulk_update(objs, *args, **kwargs)
+
+        # native django bulk_update requires each object to have a primary key
+        res = super().bulk_update(objs, *args, **kwargs)
+        self._register_ops('update', objs)
+        return res
 
 
 # I add library dependant mixins to base classes only if libraries are installed
@@ -131,7 +146,7 @@ class ClickHouseSyncModel(DjangoModel):
         abstract = True
 
     @classmethod
-    def get_clickhouse_storage(cls):  # type: () -> Storage
+    def get_clickhouse_storage(cls) -> Storage:
         """
         Returns Storage instance to save clickhouse sync data to
         :return:
@@ -140,8 +155,7 @@ class ClickHouseSyncModel(DjangoModel):
         return storage_cls()
 
     @classmethod
-    def register_clickhouse_sync_model(cls, model_cls):
-        # type: (Type['django_clickhouse.clickhouse_models.ClickHouseModel']) -> None
+    def register_clickhouse_sync_model(cls, model_cls: Type['ClickHouseModel']) -> None:
         """
         Registers ClickHouse model to listen to this model updates
         :param model_cls: Model class to register
@@ -153,7 +167,7 @@ class ClickHouseSyncModel(DjangoModel):
         cls._clickhouse_sync_models.add(model_cls)
 
     @classmethod
-    def get_clickhouse_sync_models(cls):  # type: () -> Set['django_clickhouse.clickhouse_models.ClickHouseModel']
+    def get_clickhouse_sync_models(cls) -> Set['ClickHouseModel']:
         """
         Returns all clickhouse models, listening to this class
         :return: A set of model classes to sync
@@ -161,8 +175,7 @@ class ClickHouseSyncModel(DjangoModel):
         return getattr(cls, '_clickhouse_sync_models', set())
 
     @classmethod
-    def register_clickhouse_operations(cls, operation, *model_pks, using=None):
-        # type: (str, *Any, Optional[str]) -> None
+    def register_clickhouse_operations(cls, operation: str, *model_pks: Any, using: Optional[str] = None) -> None:
         """
         Registers model operation in storage
         :param operation: Operation type - one of [insert, update, delete)
@@ -170,7 +183,7 @@ class ClickHouseSyncModel(DjangoModel):
         :param using: Database alias registered instances are from
         :return: None
         """
-        model_pks = ['%s.%d' % (using or config.DEFAULT_DB_ALIAS, pk) for pk in model_pks]
+        model_pks = ['%s.%s' % (using or config.DEFAULT_DB_ALIAS, pk) for pk in model_pks]
 
         def _on_commit():
             for model_cls in cls.get_clickhouse_sync_models():
@@ -181,16 +194,16 @@ class ClickHouseSyncModel(DjangoModel):
             storage = cls.get_clickhouse_storage()
             transaction.on_commit(_on_commit, using=using)
 
-    def post_save(self, created, using=None):  # type: (bool, Optional[str]) -> None
+    def post_save(self, created: bool, using: Optional[str] = None) -> None:
         self.register_clickhouse_operations('insert' if created else 'update', self.pk, using=using)
 
-    def post_delete(self, using=None):  # type: (Optional[str]) -> None
+    def post_delete(self, using: Optional[str] = None) -> None:
         self.register_clickhouse_operations('delete', self.pk, using=using)
 
 
 @receiver(post_save)
 def post_save(sender, instance, **kwargs):
-    statsd.incr('clickhouse.sync.post_save'.format('post_save'), 1)
+    statsd.incr('%s.sync.post_save' % config.STATSD_PREFIX, 1)
     if issubclass(sender, ClickHouseSyncModel):
         instance.post_save(kwargs.get('created', False), using=kwargs.get('using'))
 

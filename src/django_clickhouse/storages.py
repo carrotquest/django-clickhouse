@@ -39,7 +39,7 @@ class Storage:
     But ClickHouse is idempotent to duplicate inserts. So we can insert one batch twice correctly.
     """
 
-    def pre_sync(self, import_key, **kwargs):  # type: (str, **dict) -> None
+    def pre_sync(self, import_key: str, **kwargs) -> None:
         """
         This method is called before import process starts
         :param import_key: A key, returned by ClickHouseModel.get_import_key() method
@@ -48,7 +48,7 @@ class Storage:
         """
         pass
 
-    def post_sync(self, import_key, **kwargs):  # type: (str, **dict) -> None
+    def post_sync(self, import_key: str, **kwargs) -> None:
         """
         This method is called after import process has finished.
         :param import_key: A key, returned by ClickHouseModel.get_import_key() method
@@ -57,7 +57,7 @@ class Storage:
         """
         pass
 
-    def post_sync_failed(self, import_key, **kwargs):  # type: (str, **dict) -> None
+    def post_sync_failed(self, import_key: str, **kwargs) -> None:
         """
         This method is called after import process has finished with exception.
         :param import_key: A key, returned by ClickHouseModel.get_import_key() method
@@ -66,7 +66,7 @@ class Storage:
         """
         pass
 
-    def post_batch_removed(self, import_key, batch_size):  # type: (str, int) -> None
+    def post_batch_removed(self, import_key: str, batch_size: int) -> None:
         """
         This method marks that batch has been removed in statsd
         :param import_key: A key, returned by ClickHouseModel.get_import_key() method
@@ -76,8 +76,7 @@ class Storage:
         key = "%s.sync.%s.queue" % (config.STATSD_PREFIX, import_key)
         statsd.gauge(key, self.operations_count(import_key))
 
-    def operations_count(self, import_key, **kwargs):
-        # type: (str, **dict) -> int
+    def operations_count(self, import_key: str, **kwargs) -> int:
         """
         Returns sync queue size
         :param import_key: A key, returned by ClickHouseModel.get_import_key() method
@@ -86,8 +85,7 @@ class Storage:
         """
         raise NotImplemented()
 
-    def get_operations(self, import_key, count, **kwargs):
-        # type: (str, int, **dict) -> List[Tuple[str, str]]
+    def get_operations(self, import_key: str, count: int, **kwargs) -> List[Tuple[str, str]]:
         """
         Must return a list of operations on the model.
         Method should be error safe - if something goes wrong, import data should not be lost.
@@ -98,7 +96,7 @@ class Storage:
         """
         raise NotImplemented()
 
-    def register_operations(self, import_key, operation, *pks):  # type: (str, str, *Any) -> int
+    def register_operations(self, import_key: str, operation: str, *pks: Any) -> int:
         """
         Registers new incoming operation
         :param import_key: A key, returned by ClickHouseModel.get_import_key() method
@@ -108,8 +106,7 @@ class Storage:
         """
         raise NotImplementedError()
 
-    def register_operations_wrapped(self, import_key, operation, *pks):
-        # type: (str, str, *Any)  -> int
+    def register_operations_wrapped(self, import_key: str, operation: str, *pks: Any) -> int:
         """
         This is a wrapper for register_operation method, checking main parameters.
         This method should be called from inner functions.
@@ -140,14 +137,14 @@ class Storage:
         """
         raise NotImplemented()
 
-    def get_last_sync_time(self, import_key):  # type: (str) -> Optional[datetime.datetime]
+    def get_last_sync_time(self, import_key: str) -> Optional[datetime.datetime]:
         """
         Gets the last time, sync has been executed
         :return: datetime.datetime if last sync has been. Otherwise - None.
         """
         raise NotImplemented()
 
-    def set_last_sync_time(self, import_key, dt):  # type: (str, datetime.datetime) -> None
+    def set_last_sync_time(self, import_key: str, dt: datetime.datetime) -> None:
         """
         Sets successful sync time
         :return: None

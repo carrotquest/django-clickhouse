@@ -27,28 +27,42 @@ addons:
       - postgresql-11
       - postgresql-contrib-11
       - postgresql-client-11
+      - postgresql-12
+      - postgresql-contrib-12
+      - postgresql-client-12
       - unzip
       - rabbitmq-server
 
 python:
   - 3.6
   - 3.7
+  - 3.8
 
 env:
   - PG=9.6 DJANGO=2.1
   - PG=10 DJANGO=2.1
   - PG=11 DJANGO=2.1
+  - PG=12 DJANGO=2.1
   - PG=9.6 DJANGO=2.2
   - PG=10 DJANGO=2.2
   - PG=11 DJANGO=2.2
+  - PG=12 DJANGO=2.2
+  - PG=9.6 DJANGO=3.0
+  - PG=10 DJANGO=3.0
+  - PG=11 DJANGO=3.0
+  - PG=12 DJANGO=3.0
 
 before_install:
   # Use default PostgreSQL 11 port
   - sudo sed -i 's/port = 5433/port = 5432/' /etc/postgresql/11/main/postgresql.conf
   - sudo cp /etc/postgresql/{10,11}/main/pg_hba.conf
 
+  - sudo sed -i 's/port = 5434/port = 5432/' /etc/postgresql/12/main/postgresql.conf
+  - sudo cp /etc/postgresql/{10,12}/main/pg_hba.conf
+
   # Start PostgreSQL version we need
-  - sudo systemctl stop postgresql && sudo systemctl start postgresql@$PG-main
+  - sudo systemctl stop postgresql
+  - sudo systemctl start postgresql@$PG-main
 
   # ClickHouse sources
   - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv E0C56BD4
@@ -60,9 +74,8 @@ install:
   - sudo apt-get install clickhouse-client clickhouse-server clickhouse-common-static
   - sudo service clickhouse-server restart
 
-  - pip install -r requirements.txt
+  - pip install -r requirements-test.txt
   - pip install -q Django==$DJANGO.*
-  - pip install redis
   - python setup.py -q install
 
 before_script:

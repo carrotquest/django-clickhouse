@@ -1,4 +1,4 @@
-from typing import NamedTuple
+from typing import NamedTuple, Optional, Iterable, Type
 
 import pytz
 from django.db.models import Model as DjangoModel
@@ -7,7 +7,19 @@ from .utils import model_to_dict
 
 
 class Django2ClickHouseModelSerializer:
-    def __init__(self, model_cls, fields=None, exclude_fields=None, writable=False, defaults=None):
+    def __init__(self, model_cls: Type['ClickHouseModel'], fields: Optional[Iterable[str]] = None,
+                 exclude_fields: Optional[Iterable[str]] = None, writable: bool = False,
+                 defaults: Optional[dict] = None) -> None:
+        """
+        Initializes serializer
+        :param model_cls: ClickHouseModel subclass to serialize to
+        :param fields: Optional. A list of fields to add into result tuple
+        :param exclude_fields: Fields to exclude from result tuple
+        :param writable: If fields parameter is not set directly,
+          this flags determines if only writable or all fields should be taken from model_cls
+        :param defaults: A dictionary of field: value which are taken as default values for model_cls instances
+        :return: None
+        """
         self._model_cls = model_cls
         if fields is not None:
             self.serialize_fields = fields
@@ -18,7 +30,7 @@ class Django2ClickHouseModelSerializer:
         self._result_class = self._model_cls.get_tuple_class(defaults=defaults)
         self._fields = self._model_cls.fields(writable=False)
 
-    def _get_serialize_kwargs(self, obj):
+    def _get_serialize_kwargs(self, obj: DjangoModel) -> dict:
         data = model_to_dict(obj, fields=self.serialize_fields, exclude_fields=self.exclude_serialize_fields)
 
         # Remove None values, they should be initialized as defaults
@@ -29,5 +41,5 @@ class Django2ClickHouseModelSerializer:
 
         return result
 
-    def serialize(self, obj):  # type: (DjangoModel) -> NamedTuple
+    def serialize(self, obj: DjangoModel) -> NamedTuple:
         return self._result_class(**self._get_serialize_kwargs(obj))

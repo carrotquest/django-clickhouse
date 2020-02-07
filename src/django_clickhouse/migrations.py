@@ -23,7 +23,7 @@ class Migration:
     """
     operations = []
 
-    def apply(self, db_alias, database=None):  # type: (str, Optional[Database]) -> None
+    def apply(self, db_alias: str, database: Optional[Database] = None) -> None:
         """
         Applies migration to given database
         :param db_alias: Database alias to apply migration to
@@ -37,12 +37,11 @@ class Migration:
             model_class = getattr(op, 'model_class', None)
             hints = getattr(op, 'hints', {})
 
-            if db_router.allow_migrate(db_alias, self.__module__, op, model=model_class, **hints):
+            if db_router.allow_migrate(db_alias, self.__module__, op, model_class, **hints):
                 op.apply(database)
 
 
-def migrate_app(app_label, db_alias, up_to=9999, database=None):
-    # type: (str, str, int, Optional[Database]) -> None
+def migrate_app(app_label: str, db_alias: str, up_to: int = 9999, database: Optional[Database] = None) -> None:
     """
     Migrates given django app
     :param app_label: App label to migrate
@@ -110,7 +109,7 @@ class MigrationHistory(ClickHouseModel):
     engine = MergeTree('applied', ('db_alias', 'package_name', 'module_name'))
 
     @classmethod
-    def set_migration_applied(cls, db_alias, migrations_package, name):  # type: (str, str, str) -> None
+    def set_migration_applied(cls, db_alias: str, migrations_package: str, name: str) -> None:
         """
         Sets migration apply status
         :param db_alias: Database alias migration is applied to
@@ -126,7 +125,7 @@ class MigrationHistory(ClickHouseModel):
                            applied=datetime.date.today())
 
     @classmethod
-    def get_applied_migrations(cls, db_alias, migrations_package):  # type: (str, str) -> Set[str]
+    def get_applied_migrations(cls, db_alias: str, migrations_package: str) -> Set[str]:
         """
         Returns applied migrations names
         :param db_alias: Database alias, to check

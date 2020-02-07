@@ -1,6 +1,9 @@
 import datetime
+from unittest import skipIf
 
+import django
 from django.test import TransactionTestCase
+from django.utils.timezone import now
 
 from tests.clickhouse_models import ClickHouseTestModel, ClickHouseSecondTestModel, ClickHouseCollapseTestModel, \
     ClickHouseMultiTestModel
@@ -58,6 +61,76 @@ class TestOperations(TransactionTestCase):
         items = self.django_model.objects.bulk_create(items)
         self.assertEqual(5, len(items))
         self.assertSetEqual({('insert', "%s.%d" % (self.db_alias, instance.pk)) for instance in items},
+                            set(self.storage.get_operations(self.clickhouse_model.get_import_key(), 10)))
+
+    @skipIf(django.VERSION < (2, 2), "bulk_update method has been introduced in django 2.2")
+    def test_native_bulk_update(self):
+        items = list(self.django_model.objects.filter(pk__in={1, 2}))
+        for instance in items:
+            instance.value = instance.pk * 10
+
+        self.django_model.native_objects.bulk_update(items, ['value'])
+
+        items = list(self.django_model.objects.filter(pk__in={1, 2}))
+        self.assertEqual(2, len(items))
+        for instance in items:
+            self.assertEqual(instance.value, instance.pk * 10)
+
+        self.assertSetEqual({('update', "%s.%d" % (self.db_alias, instance.pk)) for instance in items},
+                            set(self.storage.get_operations(self.clickhouse_model.get_import_key(), 10)))
+
+    def test_pg_bulk_create(self):
+        now_dt = now()
+        res = self.django_model.objects.pg_bulk_create([
+            {'value': i, 'created': now_dt, 'created_date': now_dt.date()}
+            for i in range(5)
+        ])
+        self.assertEqual(5, res)
+
+        items = list(self.django_model.objects.filter(value__lt=100).order_by('value'))
+        self.assertEqual(5, len(items))
+        for i, instance in enumerate(items):
+            self.assertEqual(instance.created, now_dt)
+            self.assertEqual(instance.created_date, now_dt.date())
+            self.assertEqual(i, instance.value)
+
+        self.assertSetEqual({('insert', "%s.%d" % (self.db_alias, instance.pk)) for instance in items},
+                            set(self.storage.get_operations(self.clickhouse_model.get_import_key(), 10)))
+
+    def test_pg_bulk_update(self):
+        items = list(self.django_model.objects.filter(pk__in={1, 2}))
+
+        self.django_model.objects.pg_bulk_update([
+            {'id': instance.pk, 'value': instance.pk * 10}
+            for instance in items
+        ])
+
+        items = list(self.django_model.objects.filter(pk__in={1, 2}))
+        self.assertEqual(2, len(items))
+        for instance in items:
+            self.assertEqual(instance.value, instance.pk * 10)
+
+        self.assertSetEqual({('update', "%s.%d" % (self.db_alias, instance.pk)) for instance in items},
+                            set(self.storage.get_operations(self.clickhouse_model.get_import_key(), 10)))
+
+    def test_pg_bulk_update_or_create(self):
+        items = list(self.django_model.objects.filter(pk__in={1, 2}))
+
+        data = [{
+            'id': instance.pk,
+            'value': instance.pk * 10,
+            'created_date': instance.created_date,
+            'created': instance.created
+        } for instance in items] + [{'id': 11, 'value': 110, 'created_date': datetime.date.today(), 'created': now()}]
+
+        self.django_model.objects.pg_bulk_update_or_create(data)
+
+        items = list(self.django_model.objects.filter(pk__in={1, 2, 11}))
+        self.assertEqual(3, len(items))
+        for instance in items:
+            self.assertEqual(instance.value, instance.pk * 10)
+
+        self.assertSetEqual({('update', "%s.%d" % (self.db_alias, instance.pk)) for instance in items},
                             set(self.storage.get_operations(self.clickhouse_model.get_import_key(), 10)))
 
     def test_get_or_create(self):

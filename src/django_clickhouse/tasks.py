@@ -11,14 +11,14 @@ from .utils import get_subclasses
 
 
 @shared_task(queue=config.CELERY_QUEUE)
-def sync_clickhouse_model(cls):  # type: (ClickHouseModel) -> None
+def sync_clickhouse_model(model_cls) -> None:
     """
     Syncs one batch of given ClickHouseModel
-    :param cls: ClickHouseModel subclass
+    :param model_cls: ClickHouseModel subclass
     :return: None
     """
-    cls.get_storage().set_last_sync_time(cls.get_import_key(), datetime.datetime.now())
-    cls.sync_batch_from_storage()
+    model_cls.get_storage().set_last_sync_time(model_cls.get_import_key(), datetime.datetime.now())
+    model_cls.sync_batch_from_storage()
 
 
 @shared_task(queue=config.CELERY_QUEUE)

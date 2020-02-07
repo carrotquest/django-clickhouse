@@ -48,9 +48,17 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
     django_model = None
     django_model_serializer = Django2ClickHouseModelSerializer
 
+    # Servers, model is replicated to.
+    # Router takes random database to read or write from.
     read_db_aliases = (config.DEFAULT_DB_ALIAS,)
     write_db_aliases = (config.DEFAULT_DB_ALIAS,)
+
+    # Databases to perform replicated migration queries, such as ALTER TABLE.
+    # Migration is applied to random database from the list.
     migrate_replicated_db_aliases = (config.DEFAULT_DB_ALIAS,)
+
+    # Databases to perform non-replicated migrations (CREATE TABLE, DROP TABLE).
+    # Migration is applied to all databases from the list.
     migrate_non_replicated_db_aliases = (config.DEFAULT_DB_ALIAS,)
 
     sync_enabled = False
@@ -86,12 +94,11 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         return namedtuple("%sTuple" % cls.__name__, field_names, defaults=default_values)
 
     @classmethod
-    def objects_in(cls, database):  # type: (Database) -> QuerySet
+    def objects_in(cls, database: Database)-> QuerySet:
         return QuerySet(cls, database)
 
     @classmethod
-    def get_database_alias(cls, for_write=False):
-        # type: (bool) -> str
+    def get_database_alias(cls, for_write: bool = False) -> str:
         """
         Gets database alias for read or write purposes
         :param for_write: Boolean flag if database is neede for read or for write
@@ -104,8 +111,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
             return db_router.db_for_read(cls)
 
     @classmethod
-    def get_database(cls, for_write=False):
-        # type: (bool) -> Database
+    def get_database(cls, for_write: bool = False) -> Database:
         """
         Gets database alias for read or write purposes
         :param for_write: Boolean flag if database is neede for read or for write
@@ -115,8 +121,8 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         return connections[db_alias]
 
     @classmethod
-    def get_django_model_serializer(cls, writable=False, defaults=None):
-        # type: (bool, Optional[dict]) -> Django2ClickHouseModelSerializer
+    def get_django_model_serializer(cls, writable: bool= False, defaults: Optional[dict] = None
+                                    ) -> Django2ClickHouseModelSerializer:
         serializer_cls = lazy_class_import(cls.django_model_serializer)
         return serializer_cls(cls, writable=writable, defaults=defaults)
 
@@ -163,7 +169,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         return True
 
     @classmethod
-    def get_sync_query_set(cls, using, pk_set):  # type: (str, Set[Any]) -> DjangoQuerySet
+    def get_sync_query_set(cls, using: str, pk_set: Set[Any]) -> DjangoQuerySet:
         """
         Forms django queryset to fetch for sync
         :param using: Database to fetch from
@@ -173,7 +179,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         return cls.django_model.objects.filter(pk__in=pk_set).using(using)
 
     @classmethod
-    def get_sync_objects(cls, operations):  # type: (List[Tuple[str, str]]) -> List[DjangoModel]
+    def get_sync_objects(cls, operations: List[Tuple[str, str]]) -> List[DjangoModel]:
         """
         Returns objects from main database to sync
         :param operations: A list of operations to perform
@@ -195,7 +201,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
         return list(chain(*objs))
 
     @classmethod
-    def get_insert_batch(cls, import_objects):  # type: (Iterable[DjangoModel]) -> List[ClickHouseModel]
+    def get_insert_batch(cls, import_objects: Iterable[DjangoModel]) -> List['ClickHouseModel']:
         """
         Formats django model objects to batch of ClickHouse objects
         :param import_objects: DjangoModel objects to import
@@ -259,7 +265,7 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
             raise ex
 
     @classmethod
-    def need_sync(cls):  # type: () -> bool
+    def need_sync(cls) -> bool:
         """
         Checks if this model needs synchronization: sync is enabled and delay has passed
         :return: Boolean

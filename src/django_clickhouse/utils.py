@@ -18,7 +18,7 @@ from .database import connections
 T = TypeVar('T')
 
 
-def get_tz_offset(db_alias=None):  # type: (Optional[str]) -> int
+def get_tz_offset(db_alias: Optional[str] = None) -> int:
     """
     Returns ClickHouse server timezone offset in minutes
     :param db_alias: The database alias used
@@ -28,8 +28,8 @@ def get_tz_offset(db_alias=None):  # type: (Optional[str]) -> int
     return int(db.server_timezone.utcoffset(datetime.datetime.utcnow()).total_seconds() / 60)
 
 
-def format_datetime(dt, timezone_offset=0, day_end=False, db_alias=None):
-    # type: (Union[datetime.date, datetime.datetime], int, bool, Optional[str]) -> str
+def format_datetime(dt: Union[datetime.date, datetime.datetime], timezone_offset: int = 0, day_end: bool = False,
+                    db_alias: Optional[str] = None) -> str:
     """
     Formats datetime and date objects to format that can be used in WHERE conditions of query
     :param dt: datetime.datetime or datetime.date object
@@ -58,9 +58,9 @@ def format_datetime(dt, timezone_offset=0, day_end=False, db_alias=None):
     return server_dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def module_exists(module_name):  # type: (str) -> bool
+def module_exists(module_name: str) -> bool:
     """
-    Checks if moudle exists
+    Checks if module exists
     :param module_name: Dot-separated module name
     :return: Boolean
     """
@@ -69,7 +69,7 @@ def module_exists(module_name):  # type: (str) -> bool
     return spam_spec is not None
 
 
-def lazy_class_import(obj):  # type: (Union[str, Any]) -> Any
+def lazy_class_import(obj: Union[str, Any]) -> Any:
     """
     If string is given, imports object by given module path.
     Otherwise returns the object
@@ -88,7 +88,7 @@ def lazy_class_import(obj):  # type: (Union[str, Any]) -> Any
         return obj
 
 
-def get_subclasses(cls, recursive=False):  # type: (T, bool) -> Set[T]
+def get_subclasses(cls: T, recursive: bool = False) -> Set[T]:
     """
     Gets all subclasses of given class
     Attention!!! Classes would be found only if they were imported before using this function
@@ -105,8 +105,8 @@ def get_subclasses(cls, recursive=False):  # type: (T, bool) -> Set[T]
     return subclasses
 
 
-def model_to_dict(instance, fields=None, exclude_fields=None):
-    # type: (DjangoModel, Optional[Iterable[str]], Optional[Iterable[str]]) -> Dict[str, Any]
+def model_to_dict(instance: DjangoModel, fields:  Optional[Iterable[str]] = None,
+                  exclude_fields:  Optional[Iterable[str]] = None) -> Dict[str, Any]:
     """
     Standard model_to_dict ignores some fields if they have invalid naming
     :param instance: Object to convert to dictionary
