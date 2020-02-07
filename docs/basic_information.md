@@ -32,6 +32,6 @@ It is based on [infi.clickhouse-orm](https://github.com/Infinidat/infi.clickhous
 
 ## Installation
 Install via pip:  
-`pip install django-clickhouse` ([not released yet](https://github.com/carrotquest/django-clickhouse/issues/3))    
+`pip install django-clickhouse`    
 or via setup.py:  
 `python setup.py install`
