@@ -5,6 +5,7 @@ It saves all operations to storage in order to write them to ClickHouse later.
 
 from typing import Optional, Any, Type, Set
 
+import functools
 import six
 from django.db import transaction
 from django.db.models import QuerySet as DjangoQuerySet, Model as DjangoModel, Manager as DjangoManager
@@ -71,19 +72,25 @@ class ClickHouseSyncBulkUpdateQuerySetMixin(ClickHouseSyncRegisterMixin, BulkUpd
 
         return returning
 
-    def pg_bulk_update(self, *args, **kwargs):
+    def _decorate_method(self, name: str, operation: str, args, kwargs):
+        if not hasattr(super(), name):
+            raise AttributeError(name)
+
+        func = getattr(super(), name)
         original_returning = kwargs.pop('returning', None)
         kwargs['returning'] = self._update_returning_param(original_returning)
-        result = super().pg_bulk_update(*args, **kwargs)
-        self._register_ops('update', result)
+        result = func(*args, **kwargs)
+        self._register_ops(operation, result)
         return result.count() if original_returning is None else result
 
+    def pg_bulk_update(self, *args, **kwargs):
+        return self._decorate_method('pg_bulk_update', 'update', args, kwargs)
+
     def pg_bulk_update_or_create(self, *args, **kwargs):
-        original_returning = kwargs.pop('returning', None)
-        kwargs['returning'] = self._update_returning_param(original_returning)
-        result = super().pg_bulk_update_or_create(*args, **kwargs)
-        self._register_ops('update', result)
-        return result.count() if original_returning is None else result
+        return self._decorate_method('pg_bulk_update_or_create', 'update', args, kwargs)
+
+    def pg_bulk_create(self, *args, **kwargs):
+        return self._decorate_method('pg_bulk_create', 'insert', args, kwargs)
 
 
 class ClickHouseSyncQuerySetMixin(ClickHouseSyncRegisterMixin):
