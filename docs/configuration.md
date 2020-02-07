@@ -38,7 +38,7 @@ A database alias to use in [QuerySets](queries.md) if direct [using](routing.md#
 
 ### CLICKHOUSE_SYNC_STORAGE
 Defaults to: `'django_clickhouse.storages.RedisStorage'`  
-An intermediate storage class to use. Can be a string or class. [More info about storages](storages.md).
+An [intermediate storage](storages.md) class to use. Can be a string or class.
 
 ### CLICKHOUSE_REDIS_CONFIG
 Default to: `None`  
@@ -57,11 +57,11 @@ CLICKHOUSE_REDIS_CONFIG = {
 
 ### CLICKHOUSE_SYNC_BATCH_SIZE
 Defaults to: `10000`  
-Maximum number of operations, fetched by sync process from intermediate storage per sync round.
+Maximum number of operations, fetched by sync process from [intermediate storage](storages.md) per [sync](sync.md)) round.
 
 ### CLICKHOUSE_SYNC_DELAY
 Defaults to: `5`
-A delay in seconds between two sync rounds start.
+A delay in seconds between two [sync](synchronization.md) rounds start.
 
 ### CLICKHOUSE_MODELS_MODULE
 Defaults to: `'clickhouse_models'`  

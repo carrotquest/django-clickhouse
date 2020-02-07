@@ -1,3 +1,6 @@
+import sys
+from unittest import skipIf
+
 from django.test import TestCase
 
 from django_clickhouse.compatibility import namedtuple
@@ -10,12 +13,16 @@ class NamedTupleTest(TestCase):
         self.assertTupleEqual((1, 2, 4), tuple(TestTuple(1, 2, 4)))
         self.assertTupleEqual((1, 2, 4), tuple(TestTuple(a=1, b=2, c=4)))
 
-    def test_exceptions(self):
+    @skipIf(sys.version_info < (3, 7),
+            "On python < 3.7 this error is not raised, as not given defaults are filled by None")
+    def test_no_required_value(self):
         TestTuple = namedtuple('TestTuple', ('a', 'b', 'c'), defaults=[3])
 
-        # BUG On python < 3.7 this error is not raised, as not given defaults are filled by None
-        # with self.assertRaises(TypeError):
-        #     TestTuple(b=1, c=4)
+        with self.assertRaises(TypeError):
+            TestTuple(b=1, c=4)
+
+    def test_duplicate_value(self):
+        TestTuple = namedtuple('TestTuple', ('a', 'b', 'c'), defaults=[3])
 
         with self.assertRaises(TypeError):
             TestTuple(1, 2, 3, c=4)

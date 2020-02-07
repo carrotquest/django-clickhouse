@@ -76,7 +76,6 @@ from my_app.models import User
 
 class ClickHouseUser(ClickHouseModel):
     django_model = User
-    sync_delay = 5
     
     id = fields.UInt32Field()
     first_name = fields.StringField()

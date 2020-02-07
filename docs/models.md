@@ -109,6 +109,15 @@ class MyMultiModel(ClickHouseMultiModel):
     sub_models = [AgeData, HeightData]
 ```
 
+## ClickHouseModel namedtuple form
+[infi.clickhouse_orm](https://github.com/Infinidat/infi.clickhouse_orm) stores data rows in special Model objects.
+It works well on hundreds of records. 
+But when you sync 100k records in a batch, initializing 100k model instances will be slow.  
+Too optimize this process `ClickHouseModel` class have `get_tuple_class()` method.
+It generates a [namedtuple](https://docs.python.org/3/library/collections.html#collections.namedtuple) class,
+with same data fields a model has. 
+Initializing such tuples takes much less time, then initializing Model objects.
+
 ## Engines
 Engine is a way of storing, indexing, replicating and sorting data ClickHouse ([docs](https://clickhouse.yandex/docs/en/operations/table_engines/)).  
 Engine system is based on [infi.clickhouse_orm engine system](https://github.com/Infinidat/infi.clickhouse_orm/blob/develop/docs/table_engines.md#table-engines).  
@@ -120,3 +129,25 @@ Currently supported engines (with all infi functionality, [more info](https://gi
 * `ReplacingMergeTree`
 * `SummingMergeTree`
 * `CollapsingMergeTree`
+
+
+## Serializers
+Serializer is a class which translates django model instances to [namedtuples, inserted into ClickHouse](#clickhousemodel-namedtuple-form).
+`django_clickhouse.serializers.Django2ClickHouseModelSerializer` is used by default in all models.
+ All serializers must inherit this class. 
+
+Serializer must implement next interface:
+```python
+from django_clickhouse.serializers import Django2ClickHouseModelSerializer
+from django.db.models import Model as DjangoModel
+from typing import *
+
+class CustomSerializer(Django2ClickHouseModelSerializer):
+    def __init__(self, model_cls: Type['ClickHouseModel'], fields: Optional[Iterable[str]] = None,
+                 exclude_fields: Optional[Iterable[str]] = None, writable: bool = False,
+                 defaults: Optional[dict] = None) -> None:
+        super().__init__(model_cls, fields=fields, exclude_fields=exclude_fields, writable=writable, defaults=defaults)
+
+    def serialize(self, obj: DjangoModel) -> NamedTuple:
+        pass
+```

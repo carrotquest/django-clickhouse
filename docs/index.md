@@ -6,7 +6,7 @@
   * [Requirements](basic_information.md#requirements)
   * [Installation](basic_information.md#installation)
   * [Design motivation](motivation.md)
-* Usage  
+* [Usage](overview.md)  
   * [Overview](overview.md)
   * [Models](models.md)
      * [DjangoModel](models.md#DjangoModel)

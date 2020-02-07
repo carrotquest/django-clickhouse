@@ -11,8 +11,7 @@ You can set a common prefix for all keys in this library using [CLICKHOUSE_STATS
 ## Gauges
 * `<prefix>.sync.<model_name>.queue`  
     Number of elements in [intermediate storage](storages.md) queue waiting for import.
-    <!--- TODO Add link --->
-    Queue should not be big. It depends on [sync_delay]() configured and time for syncing single batch.   
+    Queue should not be big. It depends on [sync_delay](synchronization.md#configuration) configured and time for syncing single batch.   
     It is a good parameter to watch and alert on.
 
 ## Timers
