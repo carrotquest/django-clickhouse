@@ -43,7 +43,7 @@ def update_returning_pk(qs: QuerySet, updates: dict) -> Set[Any]:
     :return: A set of primary keys
     """
     qs._for_write = True
-    if django_pg_returning_available(qs.db):
+    if django_pg_returning_available(qs.db) and hasattr(qs, 'update_returning'):
         pk_name = qs.model._meta.pk.name
         qs = qs.only(pk_name).update_returning(**updates)
         pks = set(qs.values_list(pk_name, flat=True))

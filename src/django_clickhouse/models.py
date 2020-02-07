@@ -71,17 +71,17 @@ class ClickHouseSyncBulkUpdateQuerySetMixin(ClickHouseSyncRegisterMixin, BulkUpd
 
         return returning
 
-    def bulk_update(self, *args, **kwargs):
+    def pg_bulk_update(self, *args, **kwargs):
         original_returning = kwargs.pop('returning', None)
         kwargs['returning'] = self._update_returning_param(original_returning)
-        result = super().bulk_update(*args, **kwargs)
+        result = super().pg_bulk_update(*args, **kwargs)
         self._register_ops('update', result)
         return result.count() if original_returning is None else result
 
-    def bulk_update_or_create(self, *args, **kwargs):
+    def pg_bulk_update_or_create(self, *args, **kwargs):
         original_returning = kwargs.pop('returning', None)
         kwargs['returning'] = self._update_returning_param(original_returning)
-        result = super().bulk_update_or_create(*args, **kwargs)
+        result = super().pg_bulk_update_or_create(*args, **kwargs)
         self._register_ops('update', result)
         return result.count() if original_returning is None else result
 
@@ -96,6 +96,19 @@ class ClickHouseSyncQuerySetMixin(ClickHouseSyncRegisterMixin):
         objs = super().bulk_create(objs, batch_size=batch_size)
         self._register_ops('insert', objs)
         return objs
+
+    def bulk_update(self, objs, *args, **kwargs):
+        objs = list(objs)
+
+        # No need to register anything, if there are no objects.
+        # If objects are not models, django-pg-bulk-update method is called and pg_bulk_update will register items
+        if len(objs) == 0 or not isinstance(objs[0], DjangoModel):
+            return super().bulk_update(objs, *args, **kwargs)
+
+        # native django bulk_update requires each object to have a primary key
+        res = super().bulk_update(objs, *args, **kwargs)
+        self._register_ops('update', objs)
+        return res
 
 
 # I add library dependant mixins to base classes only if libraries are installed
