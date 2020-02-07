@@ -1,7 +1,7 @@
 """
 This file defines router to find appropriate database
 """
-from typing import Optional
+from typing import Type
 
 import random
 import six
@@ -13,8 +13,7 @@ from .utils import lazy_class_import
 
 
 class DefaultRouter:
-    def db_for_read(self, model, **hints):
-        # type: (ClickHouseModel, **dict) -> str
+    def db_for_read(self, model: Type[ClickHouseModel], **hints) -> str:
         """
         Gets database to read from for model
         :param model: Model to decide for
@@ -23,8 +22,7 @@ class DefaultRouter:
         """
         return random.choice(model.read_db_aliases)
 
-    def db_for_write(self, model, **hints):
-        # type: (ClickHouseModel, **dict) -> str
+    def db_for_write(self, model: Type[ClickHouseModel], **hints) -> str:
         """
         Gets database to write to for model
         :param model: Model to decide for
@@ -33,8 +31,8 @@ class DefaultRouter:
         """
         return random.choice(model.write_db_aliases)
 
-    def allow_migrate(self, db_alias, app_label, operation, model=None, **hints):
-        # type: (str, str, Operation, Optional[ClickHouseModel], **dict) -> bool
+    def allow_migrate(self, db_alias: str, app_label: str, operation: Operation,
+                      model=None, **hints) -> bool:
         """
         Checks if migration can be applied to given database
         :param db_alias: Database alias to check

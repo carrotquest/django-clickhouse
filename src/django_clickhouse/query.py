@@ -1,4 +1,4 @@
-from typing import Optional, Iterable, List
+from typing import Optional, Iterable, List, Type
 
 from copy import copy
 from infi.clickhouse_orm.database import Database
@@ -13,22 +13,22 @@ class QuerySet(InfiQuerySet):
     Basic QuerySet to use
     """
 
-    def __init__(self, model_cls, database=None):  # type: (Type[InfiModel], Optional[Database]) -> None
+    def __init__(self, model_cls: Type[InfiModel], database: Optional[Database] = None) -> None:
         super(QuerySet, self).__init__(model_cls, database)
         self._db_alias = None
 
     @property
-    def _database(self):  # type: () -> Database
+    def _database(self) -> Database:
         # HACK for correct work of all infi.clickhouse-orm methods
         # There are no write QuerySet methods now, so I use for_write=False by default
         return self.get_database(for_write=False)
 
     @_database.setter
-    def _database(self, database):  # type: (Database) -> None
+    def _database(self, database: Database) -> None:
         # HACK for correct work of all infi.clickhouse-orm methods
         self._db = database
 
-    def get_database(self, for_write=False):  # type: (bool) -> Database
+    def get_database(self, for_write: bool = False) -> Database:
         """
         Gets database to execute query on. Looks for constructor or using() method.
         If nothing was set tries to get database from model class using router.
@@ -43,7 +43,7 @@ class QuerySet(InfiQuerySet):
 
         return self._db
 
-    def using(self, db_alias):  # type: (str) -> QuerySet
+    def using(self, db_alias: str) -> 'QuerySet':
         """
         Sets database alias to use for this query
         :param db_alias: Database alias name from CLICKHOUSE_DATABASES config option
@@ -54,7 +54,7 @@ class QuerySet(InfiQuerySet):
         qs._db = None  # Previous database should be forgotten
         return qs
 
-    def all(self):  # type: () -> QuerySet
+    def all(self) -> 'QuerySet':
         """
         Returns all items of queryset
         :return: QuerySet
@@ -70,7 +70,7 @@ class QuerySet(InfiQuerySet):
         self.get_database(for_write=True).insert([instance])
         return instance
 
-    def bulk_create(self, model_instances, batch_size=1000):  # type: (Iterable[InfiModel], int) -> List[InfiModel]
+    def bulk_create(self, model_instances: Iterable[InfiModel], batch_size: int = 1000) -> List[InfiModel]:
         self.get_database(for_write=True).insert(model_instances=model_instances, batch_size=batch_size)
         return list(model_instances)
 

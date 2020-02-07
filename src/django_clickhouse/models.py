@@ -5,7 +5,6 @@ It saves all operations to storage in order to write them to ClickHouse later.
 
 from typing import Optional, Any, Type, Set
 
-import functools
 import six
 from django.db import transaction
 from django.db.models import QuerySet as DjangoQuerySet, Model as DjangoModel, Manager as DjangoManager
@@ -147,7 +146,7 @@ class ClickHouseSyncModel(DjangoModel):
         abstract = True
 
     @classmethod
-    def get_clickhouse_storage(cls):  # type: () -> Storage
+    def get_clickhouse_storage(cls) -> Storage:
         """
         Returns Storage instance to save clickhouse sync data to
         :return:
@@ -156,8 +155,7 @@ class ClickHouseSyncModel(DjangoModel):
         return storage_cls()
 
     @classmethod
-    def register_clickhouse_sync_model(cls, model_cls):
-        # type: (Type['django_clickhouse.clickhouse_models.ClickHouseModel']) -> None
+    def register_clickhouse_sync_model(cls, model_cls: Type['ClickHouseModel']) -> None:
         """
         Registers ClickHouse model to listen to this model updates
         :param model_cls: Model class to register
@@ -169,7 +167,7 @@ class ClickHouseSyncModel(DjangoModel):
         cls._clickhouse_sync_models.add(model_cls)
 
     @classmethod
-    def get_clickhouse_sync_models(cls):  # type: () -> Set['django_clickhouse.clickhouse_models.ClickHouseModel']
+    def get_clickhouse_sync_models(cls) -> Set['ClickHouseModel']:
         """
         Returns all clickhouse models, listening to this class
         :return: A set of model classes to sync
@@ -177,8 +175,7 @@ class ClickHouseSyncModel(DjangoModel):
         return getattr(cls, '_clickhouse_sync_models', set())
 
     @classmethod
-    def register_clickhouse_operations(cls, operation, *model_pks, using=None):
-        # type: (str, *Any, Optional[str]) -> None
+    def register_clickhouse_operations(cls, operation: str, *model_pks: Any, using: Optional[str] = None) -> None:
         """
         Registers model operation in storage
         :param operation: Operation type - one of [insert, update, delete)
@@ -197,10 +194,10 @@ class ClickHouseSyncModel(DjangoModel):
             storage = cls.get_clickhouse_storage()
             transaction.on_commit(_on_commit, using=using)
 
-    def post_save(self, created, using=None):  # type: (bool, Optional[str]) -> None
+    def post_save(self, created: bool, using: Optional[str] = None) -> None:
         self.register_clickhouse_operations('insert' if created else 'update', self.pk, using=using)
 
-    def post_delete(self, using=None):  # type: (Optional[str]) -> None
+    def post_delete(self, using: Optional[str] = None) -> None:
         self.register_clickhouse_operations('delete', self.pk, using=using)
 
 

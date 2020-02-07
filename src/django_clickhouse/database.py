@@ -35,8 +35,8 @@ class Database(InfiDatabase):
     def _get_applied_migrations(self, migrations_package_name):
         raise NotImplementedError("This method is not supported by django_clickhouse.")
 
-    def select_tuples(self, query, model_class, settings=None):
-        # type: (str, Type['ClickHouseModel'], Optional[dict], Optional[dict]) -> Generator[tuple]
+    def select_tuples(self, query: str, model_class: Type['ClickHouseModel'], settings: Optional[dict] = None
+                      ) -> Iterable[tuple]:
         """
         This method selects model_class namedtuples, instead of class instances.
         Less memory consumption, greater speed
@@ -67,11 +67,11 @@ class Database(InfiDatabase):
 
                 yield item
 
-    def insert_tuples(self, model_class, model_tuples, batch_size=None, formatted=False):
-        # type: (Type['ClickHouseModel'], Iterable[tuple], Optional[int], bool) -> None
+    def insert_tuples(self, model_class: Type['ClickHouseModel'], model_tuples: Iterable[tuple],
+                      batch_size: Optional[int] = None, formatted: bool = False) -> None:
         """
         Inserts model_class namedtuples
-        :param model_class: Clickhouse model, namedtuples are made from
+        :param model_class: ClickHouse model, namedtuples are made from
         :param model_tuples: An iterable of tuples to insert
         :param batch_size: Size of batch
         :param formatted: If flag is set, tuples are expected to be ready to insert without calling field.to_db_string

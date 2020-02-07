@@ -28,7 +28,7 @@ DEFAULTS = {
 
 
 class Config:
-    def __getattr__(self, item):  # type: (str) -> Any
+    def __getattr__(self, item: str) -> Any:
         if item not in DEFAULTS:
             raise AttributeError('Unknown config parameter `%s`' % item)
 
