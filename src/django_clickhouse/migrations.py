@@ -7,8 +7,13 @@ from typing import Optional, Set
 from django.db import DEFAULT_DB_ALIAS as DJANGO_DEFAULT_DB_ALIAS
 from django.db.models.signals import post_migrate
 from django.dispatch import receiver
-from infi.clickhouse_orm.database import ServerError, DatabaseException
+
+# In order to support all operations import here
 from infi.clickhouse_orm.migrations import *
+
+from infi.clickhouse_orm.database import ServerError, DatabaseException
+from infi.clickhouse_orm.fields import StringField, DateField
+from infi.clickhouse_orm.engines import MergeTree
 from infi.clickhouse_orm.utils import import_submodules
 
 from .clickhouse_models import ClickHouseModel
