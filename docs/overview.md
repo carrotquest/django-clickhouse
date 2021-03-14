@@ -8,7 +8,7 @@ At the begging I expect, that you already have:
 
 ## Configuration
 Add required parameters to [Django settings.py](https://docs.djangoproject.com/en/3.0/topics/settings/):
-1. add `django_clickhouse` to INSTALLED_APPS
+1. Add `'django_clickhouse'` to `INSTALLED_APPS`
 2. [CLICKHOUSE_DATABASES](configuration.md#clickhouse_databases)
 3. [Intermediate storage](storages.md) configuration. For instance, [RedisStorage](storages.md#redisstorage)
 4. It's recommended to change [CLICKHOUSE_CELERY_QUEUE](configuration.md#clickhouse_celery_queue)
