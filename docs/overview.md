@@ -20,7 +20,7 @@ Add required parameters to [Django settings.py](https://docs.djangoproject.com/e
 You can also change other [configuration parameters](configuration.md) depending on your project.
 
 #### Example
-* if you already have a celery work flow:
+* if you already have a celery workflow:
     ```python
     # django-clickhouse library setup
     CLICKHOUSE_DATABASES = {
