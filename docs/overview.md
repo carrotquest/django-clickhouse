@@ -4,14 +4,16 @@ At the begging I expect, that you already have:
 1. [ClickHouse](https://clickhouse.tech/docs/en/) (with [ZooKeeper](https://zookeeper.apache.org/), if you use replication)
 2. Relational database used with [Django](https://www.djangoproject.com/). For instance, [PostgreSQL](https://www.postgresql.org/)
 3. [Django database set up](https://docs.djangoproject.com/en/3.0/ref/databases/)
-4. [Intermediate storage](storages.md) set up. For instance, [Redis](https://redis.io/).
+4. [Intermediate storage](storages.md) set up. For instance, [Redis](https://redis.io/)
+5. [Celery set up](https://docs.celeryproject.org/en/stable/django/first-steps-with-django.html) in order to sync data automatically.
 
 ## Configuration
 Add required parameters to [Django settings.py](https://docs.djangoproject.com/en/3.0/topics/settings/):
-1. [CLICKHOUSE_DATABASES](configuration.md#clickhouse_databases)
-2. [Intermediate storage](storages.md) configuration. For instance, [RedisStorage](storages.md#redisstorage)
-3. It's recommended to change [CLICKHOUSE_CELERY_QUEUE](configuration.md#clickhouse_celery_queue)
-4. Add sync task to [celerybeat schedule](http://docs.celeryproject.org/en/v2.3.3/userguide/periodic-tasks.html).  
+1. Add `'django_clickhouse'` to `INSTALLED_APPS`
+2. [CLICKHOUSE_DATABASES](configuration.md#clickhouse_databases)
+3. [Intermediate storage](storages.md) configuration. For instance, [RedisStorage](storages.md#redisstorage)
+4. It's recommended to change [CLICKHOUSE_CELERY_QUEUE](configuration.md#clickhouse_celery_queue)
+5. Add sync task to [celerybeat schedule](http://docs.celeryproject.org/en/v2.3.3/userguide/periodic-tasks.html).  
   Note, that executing planner every 2 seconds doesn't mean sync is executed every 2 seconds.
   Sync time depends on model sync_delay attribute value and [CLICKHOUSE_SYNC_DELAY](configuration.md#clickhouse_sync_delay) configuration parameter.
   You can read more in [sync section](synchronization.md).
@@ -20,6 +22,12 @@ You can also change other [configuration parameters](configuration.md) depending
 
 #### Example
 ```python
+INSTALLED_APPS = (
+    # Your apps may go here
+    'django_clickhouse',
+    # Your apps may go here
+)
+
 # django-clickhouse library setup
 CLICKHOUSE_DATABASES = {
     # Connection name to refer in using(...) method 
@@ -77,6 +85,9 @@ from my_app.models import User
 class ClickHouseUser(ClickHouseModel):
     django_model = User
     
+    # Uncomment the line below if you want your models to be synced automatically
+    # sync_enabled = True
+    
     id = fields.UInt32Field()
     first_name = fields.StringField()
     birthday = fields.DateField()
@@ -91,11 +102,11 @@ class ClickHouseUser(ClickHouseModel):
 3. Create `0001_initial.py` file inside the created package. Result structure should be:
     ```
     my_app
-    >> clickhouse_migrations
-    >>>> __init__.py
-    >>>> 0001_initial.py
-    >> clickhouse_models.py
-    >> models.py
+    | clickhouse_migrations
+    |-- __init__.py
+    |-- 0001_initial.py
+    | clickhouse_models.py
+    | models.py
     ```
 
 4. Add content to file `0001_initial.py`:
