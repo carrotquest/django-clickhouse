@@ -8,10 +8,11 @@ At the begging I expect, that you already have:
 
 ## Configuration
 Add required parameters to [Django settings.py](https://docs.djangoproject.com/en/3.0/topics/settings/):
-1. [CLICKHOUSE_DATABASES](configuration.md#clickhouse_databases)
-2. [Intermediate storage](storages.md) configuration. For instance, [RedisStorage](storages.md#redisstorage)
-3. It's recommended to change [CLICKHOUSE_CELERY_QUEUE](configuration.md#clickhouse_celery_queue)
-4. Add sync task to [celerybeat schedule](http://docs.celeryproject.org/en/v2.3.3/userguide/periodic-tasks.html).  
+1. Add `'django_clickhouse'` to `INSTALLED_APPS`
+2. [CLICKHOUSE_DATABASES](configuration.md#clickhouse_databases)
+3. [Intermediate storage](storages.md) configuration. For instance, [RedisStorage](storages.md#redisstorage)
+4. It's recommended to change [CLICKHOUSE_CELERY_QUEUE](configuration.md#clickhouse_celery_queue)
+5. Add sync task to [celerybeat schedule](http://docs.celeryproject.org/en/v2.3.3/userguide/periodic-tasks.html).  
   Note, that executing planner every 2 seconds doesn't mean sync is executed every 2 seconds.
   Sync time depends on model sync_delay attribute value and [CLICKHOUSE_SYNC_DELAY](configuration.md#clickhouse_sync_delay) configuration parameter.
   You can read more in [sync section](synchronization.md).
@@ -19,35 +20,73 @@ Add required parameters to [Django settings.py](https://docs.djangoproject.com/e
 You can also change other [configuration parameters](configuration.md) depending on your project.
 
 #### Example
-```python
-# django-clickhouse library setup
-CLICKHOUSE_DATABASES = {
-    # Connection name to refer in using(...) method 
-    'default': {
-        'db_name': 'test',
-        'username': 'default',
-        'password': ''
+* if you already have a celery workflow:
+    ```python
+    # django-clickhouse library setup
+    CLICKHOUSE_DATABASES = {
+        # Connection name to refer in using(...) method 
+        'default': {
+            'db_name': 'test',
+            'username': 'default',
+            'password': ''
+        }
     }
-}
-CLICKHOUSE_REDIS_CONFIG = {
-    'host': '127.0.0.1',
-    'port': 6379,
-    'db': 8,
-    'socket_timeout': 10
-}
-CLICKHOUSE_CELERY_QUEUE = 'clickhouse'
+    CLICKHOUSE_REDIS_CONFIG = {
+        'host': '127.0.0.1',
+        'port': 6379,
+        'db': 8,
+        'socket_timeout': 10
+    }
+    CLICKHOUSE_CELERY_QUEUE = 'clickhouse'
 
-# If you have no any celerybeat tasks, define a new dictionary
-# More info: http://docs.celeryproject.org/en/v2.3.3/userguide/periodic-tasks.html
-from datetime import timedelta
-CELERYBEAT_SCHEDULE = {
-    'clickhouse_auto_sync': {
-        'task': 'django_clickhouse.tasks.clickhouse_auto_sync',
-        'schedule': timedelta(seconds=2),  # Every 2 seconds
-        'options': {'expires': 1, 'queue': CLICKHOUSE_CELERY_QUEUE}
+    # If you have no any celerybeat tasks, define a new dictionary
+    # More info: http://docs.celeryproject.org/en/v2.3.3/userguide/periodic-tasks.html
+    from datetime import timedelta
+    CELERYBEAT_SCHEDULE = {
+        'clickhouse_auto_sync': {
+            'task': 'django_clickhouse.tasks.clickhouse_auto_sync',
+            'schedule': timedelta(seconds=2),  # Every 2 seconds
+            'options': {'expires': 1, 'queue': CLICKHOUSE_CELERY_QUEUE}
+        }
     }
-}
-```
+    ```
+* if you don't have a celery workflow:
+
+    create a `celery.py` file in `mysite/mysite/celery.py`:
+    ```python
+    import os
+    from datetime import timedelta
+    from celery import Celery
+
+    # set the default Django settings module for the 'celery' program.
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "mysite.settings")
+
+    app = Celery("podafarini")
+
+    # Using a string here means the worker doesn't have to serialize
+    # the configuration object to child processes.
+    # - namespace='CELERY' means all celery-related configuration keys
+    #   should have a `CELERY_` prefix.
+    app.config_from_object("django.conf:settings", namespace="CELERY")
+    # Load task modules from all registered Django app configs.
+    app.autodiscover_tasks()
+    app.conf.beat_schedule = {
+        "clickhouse_auto_sync": {
+            "task": "django_clickhouse.tasks.clickhouse_auto_sync",
+            "schedule": timedelta(seconds=2),  # Every 2 seconds
+            "options": {"expires": 1, "queue": "clickhouse"},
+        }
+    }
+    ```
+    `mysite/mysite/__init__.py`:
+    ```python
+    # This will make sure the app is always imported when
+    # Django starts so that shared_task will use this app.
+    from .celery import app as celery_app
+
+    __all__ = ("celery_app",)
+
+    ```
 
 ## Adopting django model
 Read [ClickHouseSyncModel](models.md#djangomodel) section.
@@ -76,7 +115,8 @@ from my_app.models import User
 
 class ClickHouseUser(ClickHouseModel):
     django_model = User
-    
+    # Uncomment the line below if you want your models to sync between databases
+    # need_sync = True
     id = fields.UInt32Field()
     first_name = fields.StringField()
     birthday = fields.DateField()
@@ -91,11 +131,11 @@ class ClickHouseUser(ClickHouseModel):
 3. Create `0001_initial.py` file inside the created package. Result structure should be:
     ```
     my_app
-    >> clickhouse_migrations
-    >>>> __init__.py
-    >>>> 0001_initial.py
-    >> clickhouse_models.py
-    >> models.py
+    | clickhouse_migrations
+    |-- __init__.py
+    |-- 0001_initial.py
+    | clickhouse_models.py
+    | models.py
     ```
 
 4. Add content to file `0001_initial.py`:
