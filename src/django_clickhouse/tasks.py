@@ -7,16 +7,19 @@ from infi.clickhouse_orm.utils import import_submodules
 
 from django_clickhouse.clickhouse_models import ClickHouseModel
 from .configuration import config
-from .utils import get_subclasses
+from .utils import get_subclasses, lazy_class_import
 
 
 @shared_task(queue=config.CELERY_QUEUE)
 def sync_clickhouse_model(model_cls) -> None:
     """
     Syncs one batch of given ClickHouseModel
-    :param model_cls: ClickHouseModel subclass
+    :param model_cls: ClickHouseModel subclass or python path to it
     :return: None
     """
+    model_cls = lazy_class_import(model_cls)
+
+    # If sync will not finish it is not fatal to set up sync period here: sync will be executed next time
     model_cls.get_storage().set_last_sync_time(model_cls.get_import_key(), datetime.datetime.now())
     model_cls.sync_batch_from_storage()
 
@@ -37,9 +40,8 @@ def clickhouse_auto_sync():
         except ImportError:
             pass
 
-    # Start
     for cls in get_subclasses(ClickHouseModel, recursive=True):
         if cls.need_sync():
-            # Даже если синхронизация вдруг не выполнится, не страшно, что мы установили период синхронизации
-            # Она выполнится следующей таской через интервал.
-            sync_clickhouse_model.delay(cls)
+            # I pass class as a string in order to make it JSON serializable
+            cls_path = "%s.%s" % (cls.__module__, cls.__name__)
+            sync_clickhouse_model.delay(cls_path)

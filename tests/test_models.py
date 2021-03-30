@@ -2,7 +2,7 @@ import datetime
 from unittest import skipIf
 
 import django
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, TestCase
 from django.utils.timezone import now
 
 from tests.clickhouse_models import ClickHouseTestModel, ClickHouseSecondTestModel, ClickHouseCollapseTestModel, \
@@ -25,6 +25,8 @@ class TestOperations(TransactionTestCase):
     fixtures = ['test_model']
     django_model = TestModel
     clickhouse_model = ClickHouseTestModel
+
+    databases = ['default', 'secondary']
     db_alias = 'default'
     multi_db = True
 
