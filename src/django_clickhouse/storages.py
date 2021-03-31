@@ -251,7 +251,7 @@ class RedisStorage(with_metaclass(SingletonMeta, Storage)):
         self.post_batch_removed(import_key, batch_size)
         self.get_lock(import_key, **kwargs).release()
 
-        logger.info('django-clickhouse: synced %d items (key: %s)' % (batch_size, import_key))
+        logger.info('django-clickhouse: removed %d operations from storage (key: %s)' % (batch_size, import_key))
 
     def post_sync_failed(self, import_key, **kwargs):
         # unblock lock after sync completed

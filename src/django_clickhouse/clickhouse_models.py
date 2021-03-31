@@ -236,7 +236,10 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
 
                 with statsd.timer(statsd_key.format('steps.get_operations')):
                     operations = storage.get_operations(import_key, cls.get_sync_batch_size())
-                    statsd.incr(statsd_key.format('operations'), len(operations))
+
+                statsd.incr(statsd_key.format('operations'), len(operations))
+                logger.debug('django-clickhouse: got %d operations from storage (key: %s)'
+                             % (len(operations), import_key))
 
                 if operations:
                     with statsd.timer(statsd_key.format('steps.get_sync_objects')):
@@ -245,12 +248,17 @@ class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
                     import_objects = []
 
                 statsd.incr(statsd_key.format('import_objects'), len(import_objects))
+                logger.debug('django-clickhouse: got %d objects to import from database (key: %s)'
+                             % (len(import_objects), import_key))
 
                 if import_objects:
                     with statsd.timer(statsd_key.format('steps.get_insert_batch')):
                         # NOTE I don't use generator pattern here, as it move all time into insert.
-                        # That makes hard to understand where real problem is in monitoring
+                        #  That makes hard to understand where real problem is in monitoring
                         batch = tuple(cls.get_insert_batch(import_objects))
+
+                    logger.debug('django-clickhouse: formed %d ClickHouse objects to insert (key: %s)'
+                                 % (len(batch), import_key))
 
                     with statsd.timer(statsd_key.format('steps.insert')):
                         cls.insert_batch(batch)
@@ -312,7 +320,10 @@ class ClickHouseMultiModel(ClickHouseModel):
 
                 with statsd.timer(statsd_key.format('steps.get_operations')):
                     operations = storage.get_operations(import_key, cls.get_sync_batch_size())
-                    statsd.incr(statsd_key.format('operations'), len(operations))
+
+                statsd.incr(statsd_key.format('operations'), len(operations))
+                logger.debug('django-clickhouse: got %d operations from storage (key: %s)'
+                             % (len(operations), import_key))
 
                 if operations:
                     with statsd.timer(statsd_key.format('steps.get_sync_objects')):
@@ -321,6 +332,8 @@ class ClickHouseMultiModel(ClickHouseModel):
                     import_objects = []
 
                 statsd.incr(statsd_key.format('import_objects'), len(import_objects))
+                logger.debug('django-clickhouse: got %d objects to import from database (key: %s)'
+                             % (len(import_objects), import_key))
 
                 if import_objects:
                     batches = {}
@@ -331,7 +344,10 @@ class ClickHouseMultiModel(ClickHouseModel):
                                 # NOTE I don't use generator pattern here, as it move all time into insert.
                                 # That makes hard to understand where real problem is in monitoring
                                 batch = tuple(model_cls.get_insert_batch(import_objects))
-                                return model_cls, batch
+
+                            logger.debug('django-clickhouse: formed %d ClickHouse objects to insert'
+                                         ' (model_cls: %s, key: %s)' % (len(batch), model_cls.__name__, import_key))
+                            return model_cls, batch
 
                         res = exec_multi_arg_func(_sub_model_func, cls.sub_models, threads_count=len(cls.sub_models))
                         batches = dict(res)
