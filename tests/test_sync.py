@@ -2,15 +2,18 @@ import datetime
 import logging
 from subprocess import Popen
 from time import sleep
-from unittest import expectedFailure, skip
+from unittest import expectedFailure, skip, mock
 
 import os
 from django.test import TransactionTestCase
+from django.test.testcases import TestCase
 from django.utils.timezone import now
 from random import randint
 
 from django_clickhouse.database import connections
 from django_clickhouse.migrations import migrate_app
+from django_clickhouse.storages import RedisStorage
+from django_clickhouse.tasks import sync_clickhouse_model, clickhouse_auto_sync
 from django_clickhouse.utils import int_ranges
 from tests.clickhouse_models import ClickHouseTestModel, ClickHouseCollapseTestModel, ClickHouseMultiTestModel
 from tests.models import TestModel
@@ -205,6 +208,48 @@ class KillTest(TransactionTestCase):
         p_update.wait()
 
         self._check_data()
+
+
+@mock.patch.object(ClickHouseTestModel, 'sync_batch_from_storage')
+class SyncClickHouseModelTest(TestCase):
+    def test_model_as_class(self, sync_mock):
+        sync_clickhouse_model(ClickHouseTestModel)
+        sync_mock.assert_called()
+
+    def test_model_as_string(self, sync_mock):
+        sync_clickhouse_model('tests.clickhouse_models.ClickHouseTestModel')
+        sync_mock.assert_called()
+
+    @mock.patch.object(RedisStorage, 'set_last_sync_time')
+    def test_last_sync_time_called(self, storage_mock, _):
+        sync_clickhouse_model(ClickHouseTestModel)
+        storage_mock.assert_called()
+        self.assertEqual(2, len(storage_mock.call_args))
+        self.assertEqual(storage_mock.call_args[0][0], 'ClickHouseTestModel')
+        self.assertIsInstance(storage_mock.call_args[0][1], datetime.datetime)
+
+
+@mock.patch.object(sync_clickhouse_model, 'delay')
+class ClickHouseAutoSyncTest(TestCase):
+    @mock.patch('django_clickhouse.tasks.get_subclasses', return_value=[ClickHouseTestModel])
+    @mock.patch.object(ClickHouseTestModel, 'need_sync', return_value=True)
+    def test_needs_sync_enabled(self, need_sync_mock, get_subclasses_mock, sync_delay_mock):
+        clickhouse_auto_sync()
+        sync_delay_mock.assert_called_with('tests.clickhouse_models.ClickHouseTestModel')
+
+    @mock.patch('django_clickhouse.tasks.get_subclasses', return_value=[ClickHouseTestModel])
+    @mock.patch.object(ClickHouseTestModel, 'need_sync', return_value=False)
+    def test_does_not_need_sync(self, need_sync_mock, get_subclasses_mock, sync_delay_mock):
+        clickhouse_auto_sync()
+        sync_delay_mock.assert_not_called()
+
+    @mock.patch('django_clickhouse.tasks.get_subclasses',
+                return_value=[ClickHouseTestModel, ClickHouseCollapseTestModel])
+    @mock.patch.object(ClickHouseTestModel, 'need_sync', return_value=True)
+    @mock.patch.object(ClickHouseCollapseTestModel, 'need_sync', return_value=True)
+    def test_multiple_models(self, need_sync_1_mock, need_sync_2_mock, get_subclasses_mock, sync_delay_mock):
+        clickhouse_auto_sync()
+        self.assertEqual(2, sync_delay_mock.call_count)
 
 
 # Used to profile sync execution time. Disabled by default
