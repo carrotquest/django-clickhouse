@@ -172,11 +172,28 @@ class ExceptionThread(Thread):
         super(ExceptionThread, self).__init__(*args, **kwargs)
         self.exc = None
 
+    def _close_django_db_connections(self):
+        """
+        In Django every thread has its own database connection pool.
+        But django does not close them automatically in child threads.
+        As a result, this can cause database connection leaking.
+        Here we close connections manually when thread execution is finished.
+        """
+        try:
+            from django.db import connections as db_connections
+        except (ModuleNotFoundError, ImportError):
+            db_connections = None
+
+        if db_connections:
+            db_connections.close_all()
+
     def run(self):
         try:
             return super(ExceptionThread, self).run()
         except Exception as e:
             self.exc = e
+        finally:
+            self._close_django_db_connections()
 
     def join(self, timeout=None):
         super(ExceptionThread, self).join(timeout=timeout)
