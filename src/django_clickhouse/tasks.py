@@ -1,5 +1,6 @@
 import datetime
 import importlib
+from typing import Type, Union
 
 from celery import shared_task
 from django.conf import settings
@@ -11,7 +12,7 @@ from .utils import get_subclasses, lazy_class_import
 
 
 @shared_task(queue=config.CELERY_QUEUE)
-def sync_clickhouse_model(model_cls) -> None:
+def sync_clickhouse_model(model_cls: Union[Type[ClickHouseModel], str]) -> None:
     """
     Syncs one batch of given ClickHouseModel
     :param model_cls: ClickHouseModel subclass or python path to it
@@ -25,7 +26,7 @@ def sync_clickhouse_model(model_cls) -> None:
 
 
 @shared_task(queue=config.CELERY_QUEUE)
-def clickhouse_auto_sync():
+def clickhouse_auto_sync() -> None:
     """
     Plans syncing models
     :return: None
