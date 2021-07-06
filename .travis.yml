@@ -42,27 +42,27 @@ env:
   global:
     - PGPORT=5432
     - PGUSER=travis
-
-  - PG=9.6 DJANGO=2.1
-  - PG=10 DJANGO=2.1
-  - PG=11 DJANGO=2.1
-  - PG=12 DJANGO=2.1
-  - PG=9.6 DJANGO=2.2
-  - PG=10 DJANGO=2.2
-  - PG=11 DJANGO=2.2
-  - PG=12 DJANGO=2.2
-  - PG=9.6 DJANGO=3.0
-  - PG=10 DJANGO=3.0
-  - PG=11 DJANGO=3.0
-  - PG=12 DJANGO=3.0
-  - PG=9.6 DJANGO=3.1
-  - PG=10 DJANGO=3.1
-  - PG=11 DJANGO=3.1
-  - PG=12 DJANGO=3.1
-  - PG=9.6 DJANGO=3.2
-  - PG=10 DJANGO=3.2
-  - PG=11 DJANGO=3.2
-  - PG=12 DJANGO=3.2
+  jobs:
+    - PG=9.6 DJANGO=2.1
+    - PG=10 DJANGO=2.1
+    - PG=11 DJANGO=2.1
+    - PG=12 DJANGO=2.1
+    - PG=9.6 DJANGO=2.2
+    - PG=10 DJANGO=2.2
+    - PG=11 DJANGO=2.2
+    - PG=12 DJANGO=2.2
+    - PG=9.6 DJANGO=3.0
+    - PG=10 DJANGO=3.0
+    - PG=11 DJANGO=3.0
+    - PG=12 DJANGO=3.0
+    - PG=9.6 DJANGO=3.1
+    - PG=10 DJANGO=3.1
+    - PG=11 DJANGO=3.1
+    - PG=12 DJANGO=3.1
+    - PG=9.6 DJANGO=3.2
+    - PG=10 DJANGO=3.2
+    - PG=11 DJANGO=3.2
+    - PG=12 DJANGO=3.2
 
 before_install:
   # Use default PostgreSQL port
