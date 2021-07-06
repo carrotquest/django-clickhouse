@@ -10,7 +10,7 @@ services:
   - redis
   - rabbitmq
 addons:
-  postgresql: "11"
+  postgresql: "10"
   apt:
     sources:
       - sourceline: "deb http://repo.yandex.ru/clickhouse/deb/stable/ main/"
@@ -39,6 +39,10 @@ python:
   - 3.9
 
 env:
+  global:
+    - PGPORT=5432
+    - PGUSER=travis
+
   - PG=9.6 DJANGO=2.1
   - PG=10 DJANGO=2.1
   - PG=11 DJANGO=2.1
@@ -87,15 +91,15 @@ install:
 before_script:
   # Output software versions
   - clickhouse-client --query "SELECT version();"
-  - psql -tc 'SHOW server_version' -U postgres
+  - psql -tc 'SHOW server_version'
 
-  - psql -tc 'SHOW server_version' -U postgres
-  - psql -c 'CREATE ROLE test;' -U postgres
-  - psql -c 'ALTER ROLE test WITH SUPERUSER;' -U postgres
-  - psql -c 'ALTER ROLE test WITH LOGIN;' -U postgres
-  - psql -c "ALTER ROLE test PASSWORD 'test';" -U postgres
-  - psql -c 'CREATE DATABASE test OWNER test;' -U postgres
-  - psql -c 'CREATE DATABASE test2 OWNER test;' -U postgres
+  - psql -tc 'SHOW server_version'
+  - psql -c 'CREATE ROLE test;'
+  - psql -c 'ALTER ROLE test WITH SUPERUSER;'
+  - psql -c 'ALTER ROLE test WITH LOGIN;'
+  - psql -c "ALTER ROLE test PASSWORD 'test';"
+  - psql -c 'CREATE DATABASE test OWNER test;'
+  - psql -c 'CREATE DATABASE test2 OWNER test;'
 
 script:
   python runtests.py
