@@ -1,4 +1,4 @@
-dist: xenial
+dist: focal
 sudo: required
 language: python
 cache:
@@ -7,16 +7,13 @@ cache:
 
 services:
   - postgresql
-  - redis-server
+  - redis
+  - rabbitmq
 addons:
   postgresql: "11"
   apt:
     sources:
       - sourceline: "deb http://repo.yandex.ru/clickhouse/deb/stable/ main/"
-      - sourceline: "deb https://packages.erlang-solutions.com/ubuntu xenial contrib"
-        key_url: "https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc"
-      - sourceline: "deb https://dl.bintray.com/rabbitmq/debian xenial main"
-        key_url: "https://github.com/rabbitmq/signing-keys/releases/download/2.0/rabbitmq-release-signing-key.asc"
     packages:
       - dirmngr
       - apt-transport-https
@@ -37,6 +34,7 @@ python:
   - 3.6
   - 3.7
   - 3.8
+  - 3.9
 
 env:
   - PG=9.6 DJANGO=2.1
@@ -55,6 +53,10 @@ env:
   - PG=10 DJANGO=3.1
   - PG=11 DJANGO=3.1
   - PG=12 DJANGO=3.1
+  - PG=9.6 DJANGO=3.2
+  - PG=10 DJANGO=3.2
+  - PG=11 DJANGO=3.2
+  - PG=12 DJANGO=3.2
 
 before_install:
   # Use default PostgreSQL 11 port
