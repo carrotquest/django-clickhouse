@@ -66,9 +66,10 @@ env:
 
 before_install:
   # Use default PostgreSQL port
-  - sudo sed -i 's/port = 54../port = 5432/' /etc/postgresql/$PG/main/postgresql.conf
-  - sudo cp /etc/postgresql/{10,11}/main/pg_hba.conf
-  - sudo cp /etc/postgresql/{10,12}/main/pg_hba.conf
+  # - sudo sed -i 's/port = 54../port = 5432/' /etc/postgresql/$PG/main/postgresql.conf
+  - sudo cp /etc/postgresql/{9.6,10}/main/pg_hba.conf
+  - sudo cp /etc/postgresql/{9.6,11}/main/pg_hba.conf
+  - sudo cp /etc/postgresql/{9.6,12}/main/pg_hba.conf
 
   # Start PostgreSQL version we need
   - sudo systemctl stop postgresql
