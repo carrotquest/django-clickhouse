@@ -88,8 +88,6 @@ install:
 
 before_script:
   # Output software versions
-  - erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().'  -noshell
-  - rabbitmqctl status | grep "RabbitMQ"
   - clickhouse-client --query "SELECT version();"
   - psql -tc 'SHOW server_version' -U postgres
 
