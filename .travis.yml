@@ -61,9 +61,10 @@ env:
   - PG=12 DJANGO=3.2
 
 before_install:
-  # Use default PostgreSQL 11 port
+  # Use default PostgreSQL port
   - sudo sed -i 's/port = 54../port = 5432/' /etc/postgresql/$PG/main/postgresql.conf
-  - sudo cp /etc/postgresql/{9.6,$PG}/main/pg_hba.conf
+  - sudo cp /etc/postgresql/{10,11}/main/pg_hba.conf
+  - sudo cp /etc/postgresql/{10,12}/main/pg_hba.conf
 
   # Start PostgreSQL version we need
   - sudo systemctl stop postgresql
