@@ -88,6 +88,8 @@ install:
 
 before_script:
   # Output software versions
+  - cat /etc/postgresql/$PG/main/postgresql.conf | grep "port"
+  - service postgresql status
   - clickhouse-client --query "SELECT version();"
   - psql -tc 'SHOW server_version' -U postgres
 
