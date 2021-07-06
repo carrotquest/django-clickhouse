@@ -10,7 +10,7 @@ services:
   - redis
   - rabbitmq
 addons:
-  postgresql: "10"
+  postgresql: "9.6"
   apt:
     sources:
       - sourceline: "deb http://repo.yandex.ru/clickhouse/deb/stable/ main/"
