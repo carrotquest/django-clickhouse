@@ -3,7 +3,6 @@ from typing import Generator, Optional, Type, Iterable
 
 from infi.clickhouse_orm.database import Database as InfiDatabase, DatabaseException
 from infi.clickhouse_orm.utils import parse_tsv
-from six import next
 from io import BytesIO
 from statsd.defaults.django import statsd
 

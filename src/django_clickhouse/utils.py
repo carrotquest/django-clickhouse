@@ -7,7 +7,6 @@ from itertools import chain
 from typing import Union, Any, Optional, TypeVar, Set, Dict, Iterable, Tuple, Iterator, Callable, List
 
 import pytz
-import six
 from importlib import import_module
 from importlib.util import find_spec
 from django.db.models import Model as DjangoModel
@@ -76,7 +75,7 @@ def lazy_class_import(obj: Union[str, Any]) -> Any:
     :param obj: A string class path or object to return
     :return: Imported object
     """
-    if isinstance(obj, six.string_types):
+    if isinstance(obj, str):
         module_name, obj_name = obj.rsplit('.', 1)
         module = import_module(module_name)
 

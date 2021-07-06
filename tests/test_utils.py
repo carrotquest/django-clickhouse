@@ -3,7 +3,6 @@ from queue import Queue
 
 import pytz
 from django.test import TestCase
-from six import with_metaclass
 
 from django_clickhouse.models import ClickHouseSyncModel
 from django_clickhouse.utils import get_tz_offset, format_datetime, lazy_class_import, int_ranges, exec_in_parallel, \
@@ -110,7 +109,7 @@ class TestExecInParallel(TestCase):
 
 class TestSingletonMeta(TestCase):
     def test_singleton(self):
-        class Single(with_metaclass(SingletonMeta)):
+        class Single(metaclass=SingletonMeta):
             def __init__(self):
                 self.test = 1
 

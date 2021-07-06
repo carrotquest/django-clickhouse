@@ -1,11 +1,11 @@
-Django (>=1.7)
-pytz
-six
-typing
-psycopg2
-infi.clickhouse-orm
 celery
+Django (>=1.7)
+infi.clickhouse-orm
+pytz; python_version < '3.3'
 statsd
+typing; python_version < '3.5'
+
+psycopg2-binary
 django-pg-returning
 django-pg-bulk-update
 redis

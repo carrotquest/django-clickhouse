@@ -4,7 +4,6 @@ This file defines router to find appropriate database
 from typing import Type
 
 import random
-import six
 from infi.clickhouse_orm.migrations import Operation, DropTable, CreateTable
 
 from .clickhouse_models import ClickHouseModel
@@ -47,7 +46,7 @@ class DefaultRouter:
 
         if hints.get('model'):
             model = '%s.%s.%s' % (app_label, config.MODELS_MODULE, hints['model']) \
-                if isinstance(hints['model'], six.string_types) else hints['model']
+                if isinstance(hints['model'], str) else hints['model']
 
         model = lazy_class_import(model)
 

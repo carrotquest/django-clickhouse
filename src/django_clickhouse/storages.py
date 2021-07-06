@@ -11,7 +11,6 @@ import logging
 from typing import Any, Optional, List, Tuple
 
 import os
-from six import with_metaclass
 from statsd.defaults.django import statsd
 
 from .configuration import config
@@ -152,7 +151,7 @@ class Storage:
         raise NotImplemented()
 
 
-class RedisStorage(with_metaclass(SingletonMeta, Storage)):
+class RedisStorage(Storage, metaclass=SingletonMeta):
     """
     Fast in-memory storage made on bases of redis and redis-py library.
     Requires:

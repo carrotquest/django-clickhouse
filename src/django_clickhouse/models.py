@@ -5,7 +5,6 @@ It saves all operations to storage in order to write them to ClickHouse later.
 
 from typing import Optional, Any, Type, Set
 
-import six
 from django.db import transaction
 from django.db.models import QuerySet as DjangoQuerySet, Model as DjangoModel, Manager as DjangoManager
 from django.db.models.manager import BaseManager
@@ -64,7 +63,7 @@ class ClickHouseSyncBulkUpdateQuerySetMixin(ClickHouseSyncRegisterMixin, BulkUpd
         pk_name = self.model._meta.pk.name
         if returning is None:
             returning = pk_name
-        elif isinstance(returning, six.string_types):
+        elif isinstance(returning, str):
             returning = [pk_name, returning]
         else:
             returning = list(returning) + [pk_name]

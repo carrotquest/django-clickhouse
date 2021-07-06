@@ -11,7 +11,6 @@ from typing import List, Tuple, Iterable, Set, Any, Optional
 from django.db.models import Model as DjangoModel, QuerySet as DjangoQuerySet
 from infi.clickhouse_orm.engines import CollapsingMergeTree
 from infi.clickhouse_orm.models import Model as InfiModel, ModelBase as InfiModelBase
-from six import with_metaclass
 from statsd.defaults.django import statsd
 
 from .compatibility import namedtuple
@@ -41,7 +40,7 @@ class ClickHouseModelMeta(InfiModelBase):
         return res
 
 
-class ClickHouseModel(with_metaclass(ClickHouseModelMeta, InfiModel)):
+class ClickHouseModel(InfiModel, metaclass=ClickHouseModelMeta):
     """
     Base model for all other models
     """

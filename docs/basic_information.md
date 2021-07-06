@@ -16,9 +16,8 @@ It is based on [infi.clickhouse-orm](https://github.com/Infinidat/infi.clickhous
 * [Django](https://docs.djangoproject.com/) 1.7+
 * [Yandex ClickHouse](https://clickhouse.yandex/)
 * [infi.clickhouse-orm](https://github.com/Infinidat/infi.clickhouse_orm)
-* [pytz](https://pypi.org/project/pytz/)
-* [six](https://pypi.org/project/six/)
-* [typing](https://pypi.org/project/typing/)
+* [pytz](https://pypi.org/project/pytz/) for python before 3.3
+* [typing](https://pypi.org/project/typing/) for python before 3.5
 * [psycopg2](https://www.psycopg.org/)
 * [celery](http://www.celeryproject.org/)
 * [statsd](https://pypi.org/project/statsd/)
