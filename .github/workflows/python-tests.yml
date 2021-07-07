@@ -29,7 +29,7 @@ jobs:
         ports:
           - 5432:5432
       clickhouse:
-        image: yandex/clickhouse-server:${{ clickhouse-version }}
+        image: yandex/clickhouse-server:${{ matrix.clickhouse-version }}
         ports:
           - 8123:8123
 
