@@ -35,7 +35,7 @@ jobs:
           - 8123:8123
 
       redis:
-        image: redis:${{ matrix.clickhouse-version }}
+        image: redis:${{ matrix.redis-version }}
         ports:
           - 6379:6379
 
