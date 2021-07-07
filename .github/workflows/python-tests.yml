@@ -15,6 +15,7 @@ jobs:
         postgres-version: ["9.6", "10", "11", "12"]
         django-version: ["2.1", "2.2", "3.0", "3.1", "3.2"]
         clickhouse-version: ["latest"]
+        redis-version: ["latest"]
                       
     services:
       postgres:
@@ -32,6 +33,11 @@ jobs:
         image: yandex/clickhouse-server:${{ matrix.clickhouse-version }}
         ports:
           - 8123:8123
+
+      redis:
+        image: redis:${{ matrix.clickhouse-version }}
+        ports:
+          - 6379:6379
 
     steps:
     - uses: actions/checkout@v2
