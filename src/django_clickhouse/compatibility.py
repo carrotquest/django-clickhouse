@@ -28,7 +28,7 @@ def django_pg_returning_available(using: str) -> bool:
     :return: Boolean
     """
     try:
-        import django_pg_returning
+        import django_pg_returning  # noqa: F401
         return connections[using].vendor == 'postgresql'
     except ImportError:
         return False

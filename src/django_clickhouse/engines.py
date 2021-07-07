@@ -48,9 +48,9 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
     def _get_final_versions_by_version(self, db_alias, model_cls, min_date, max_date, object_pks, date_col, columns):
         query = """
             SELECT {columns} FROM $table WHERE (`{pk_column}`, `{version_col}`) IN (
-                SELECT `{pk_column}`, MAX(`{version_col}`) 
-                FROM $table 
-                PREWHERE `{date_col}` >= '{min_date}' AND `{date_col}` <= '{max_date}' 
+                SELECT `{pk_column}`, MAX(`{version_col}`)
+                FROM $table
+                PREWHERE `{date_col}` >= '{min_date}' AND `{date_col}` <= '{max_date}'
                     AND `{pk_column}` IN ({object_pks})
                 GROUP BY `{pk_column}`
            )

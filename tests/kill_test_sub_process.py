@@ -15,9 +15,9 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", 'tests.settings')
 django.setup()
 
 # This imports must be after django activation
-from django.db.models import F
-from tests.clickhouse_models import ClickHouseCollapseTestModel
-from tests.models import TestModel
+from django.db.models import F  # noqa: E402
+from tests.clickhouse_models import ClickHouseCollapseTestModel  # noqa: E402
+from tests.models import TestModel  # noqa: E402
 
 logger = logging.getLogger('django-clickhouse')
 

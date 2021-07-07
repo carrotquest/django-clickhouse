@@ -12,7 +12,7 @@ class StorageTest(TestCase):
 
     def setUp(self):
         self.storage.flush()
-        
+
     def tearDown(self):
         self.storage.flush()
 
@@ -75,11 +75,10 @@ class StorageTest(TestCase):
     def test_locks(self):
         # Test that multiple can acquire locks in parallel
         # And single model can't
-        l = self.storage.get_lock(ClickHouseTestModel.get_import_key())
-        l.acquire()
+        lock = self.storage.get_lock(ClickHouseTestModel.get_import_key())
+        lock.acquire()
         with self.assertRaises(RedisLockTimeoutError):
-            l.acquire()
+            lock.acquire()
 
-        l2 = self.storage.get_lock(ClickHouseCollapseTestModel.get_import_key())
-        l2.acquire()
-
+        lock_2 = self.storage.get_lock(ClickHouseCollapseTestModel.get_import_key())
+        lock_2.acquire()
