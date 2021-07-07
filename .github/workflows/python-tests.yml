@@ -29,7 +29,7 @@ jobs:
         ports:
           - 5432:5432
       clickhouse:
-        image: yandex/clickhouse-server:${{ clickhouse.postgres-version }}
+        image: yandex/clickhouse-server:${{ clickhouse-version }}
         ports:
           - 8123:8123
 
