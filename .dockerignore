@@ -1,0 +1,15 @@
+# Docs
+docs/
+
+# Python cache files
+**/__pycache__/
+
+# Private and public keys
+*.key
+*.ppk
+*.pub
+
+# Hidden apps directories
+.github/
+.idea/
+.gitignore
