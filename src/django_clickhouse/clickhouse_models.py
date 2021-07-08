@@ -93,7 +93,7 @@ class ClickHouseModel(InfiModel, metaclass=ClickHouseModelMeta):
         return namedtuple("%sTuple" % cls.__name__, field_names, defaults=default_values)
 
     @classmethod
-    def objects_in(cls, database: Database)-> QuerySet:
+    def objects_in(cls, database: Database) -> QuerySet:
         return QuerySet(cls, database)
 
     @classmethod
@@ -120,7 +120,7 @@ class ClickHouseModel(InfiModel, metaclass=ClickHouseModelMeta):
         return connections[db_alias]
 
     @classmethod
-    def get_django_model_serializer(cls, writable: bool= False, defaults: Optional[dict] = None
+    def get_django_model_serializer(cls, writable: bool = False, defaults: Optional[dict] = None
                                     ) -> Django2ClickHouseModelSerializer:
         serializer_cls = lazy_class_import(cls.django_model_serializer)
         return serializer_cls(cls, writable=writable, defaults=defaults)

@@ -118,4 +118,3 @@ class TestSingletonMeta(TestCase):
         b = Single()
         self.assertEqual(a, b)
         self.assertEqual(2, b.test)
-

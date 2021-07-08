@@ -7,7 +7,7 @@ from .utils import model_to_dict
 
 
 class Django2ClickHouseModelSerializer:
-    def __init__(self, model_cls: Type['ClickHouseModel'], fields: Optional[Iterable[str]] = None,
+    def __init__(self, model_cls: Type['ClickHouseModel'], fields: Optional[Iterable[str]] = None,  # noqa: F821
                  exclude_fields: Optional[Iterable[str]] = None, writable: bool = False,
                  defaults: Optional[dict] = None) -> None:
         """

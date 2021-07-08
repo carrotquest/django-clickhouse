@@ -48,5 +48,3 @@ class NamedTupleTest(TestCase):
         t2 = TestTuple(1, 2, 3)
         self.assertEqual(t1, t2)
         self.assertEqual((1, 2, 3), t1)
-
-
