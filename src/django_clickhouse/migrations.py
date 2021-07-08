@@ -9,7 +9,7 @@ from django.db.models.signals import post_migrate
 from django.dispatch import receiver
 
 # In order to support all operations import here
-from infi.clickhouse_orm.migrations import *
+from infi.clickhouse_orm.migrations import *  # noqa F401, F403
 
 from infi.clickhouse_orm.database import ServerError, DatabaseException
 from infi.clickhouse_orm.fields import StringField, DateField

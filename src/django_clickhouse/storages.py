@@ -83,7 +83,7 @@ class Storage:
         :param kwargs: Storage dependant arguments
         :return: Number of records in queue
         """
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def get_operations(self, import_key: str, count: int, **kwargs) -> List[Tuple[str, str]]:
         """
@@ -94,7 +94,7 @@ class Storage:
         :param kwargs: Storage dependant arguments
         :return: A list of tuples (operation, pk) in incoming order.
         """
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def register_operations(self, import_key: str, operation: str, *pks: Any) -> int:
         """
@@ -135,21 +135,21 @@ class Storage:
         This method is used in tests to drop all storage data
         :return: None
         """
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def get_last_sync_time(self, import_key: str) -> Optional[datetime.datetime]:
         """
         Gets the last time, sync has been executed
         :return: datetime.datetime if last sync has been. Otherwise - None.
         """
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def set_last_sync_time(self, import_key: str, dt: datetime.datetime) -> None:
         """
         Sets successful sync time
         :return: None
         """
-        raise NotImplemented()
+        raise NotImplementedError()
 
 
 class RedisStorage(with_metaclass(SingletonMeta, Storage)):
