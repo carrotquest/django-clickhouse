@@ -1,0 +1,39 @@
+---
+version: "3.9"
+services:
+  redis_db:
+    image: redis
+    command: [sh, -c, "redis-server --save '' --appendonly no"]  # disable persistence
+    mem_limit: 512m
+    cpus: 1
+
+  postgres_db:
+    image: postgres
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    mem_limit: 1g
+    cpus: 1
+
+  clickhouse_db:
+    image: yandex/clickhouse-server
+    mem_limit: 1g
+    cpus: 1
+
+  run_tests:
+    image: django-clickhouse
+    build:
+      context: .
+      args:
+        - PYTHON_VER=latest
+    environment:
+      - REDIS_HOST=redis_db
+      - PGHOST=postgres_db
+      - PGUSER=postgres
+      - PGPASS=postgres
+      - "CLICK_HOUSE_HOST=http://clickhouse_db:8123"
+    depends_on:
+      - redis_db
+      - postgres_db
+      - clickhouse_db
+    mem_limit: 1g
+    cpus: 1

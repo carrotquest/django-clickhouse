@@ -154,7 +154,7 @@ class ClickHouseSyncModel(DjangoModel):
         return storage_cls()
 
     @classmethod
-    def register_clickhouse_sync_model(cls, model_cls: Type['ClickHouseModel']) -> None:
+    def register_clickhouse_sync_model(cls, model_cls: Type['ClickHouseModel']) -> None:  # noqa: F821
         """
         Registers ClickHouse model to listen to this model updates
         :param model_cls: Model class to register
@@ -166,7 +166,7 @@ class ClickHouseSyncModel(DjangoModel):
         cls._clickhouse_sync_models.add(model_cls)
 
     @classmethod
-    def get_clickhouse_sync_models(cls) -> Set['ClickHouseModel']:
+    def get_clickhouse_sync_models(cls) -> Set['ClickHouseModel']:  # noqa: F821
         """
         Returns all clickhouse models, listening to this class
         :return: A set of model classes to sync

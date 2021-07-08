@@ -9,3 +9,6 @@ psycopg2-binary
 django-pg-returning
 django-pg-bulk-update
 redis
+
+# Linter
+flake8

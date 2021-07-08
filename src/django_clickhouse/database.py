@@ -1,5 +1,5 @@
 import logging
-from typing import Generator, Optional, Type, Iterable
+from typing import Optional, Type, Iterable
 
 from infi.clickhouse_orm.database import Database as InfiDatabase, DatabaseException
 from infi.clickhouse_orm.utils import parse_tsv
@@ -34,8 +34,8 @@ class Database(InfiDatabase):
     def _get_applied_migrations(self, migrations_package_name):
         raise NotImplementedError("This method is not supported by django_clickhouse.")
 
-    def select_tuples(self, query: str, model_class: Type['ClickHouseModel'], settings: Optional[dict] = None
-                      ) -> Iterable[tuple]:
+    def select_tuples(self, query: str, model_class: Type['ClickHouseModel'],  # noqa: F821
+                      settings: Optional[dict] = None) -> Iterable[tuple]:
         """
         This method selects model_class namedtuples, instead of class instances.
         Less memory consumption, greater speed
@@ -66,7 +66,7 @@ class Database(InfiDatabase):
 
                 yield item
 
-    def insert_tuples(self, model_class: Type['ClickHouseModel'], model_tuples: Iterable[tuple],
+    def insert_tuples(self, model_class: Type['ClickHouseModel'], model_tuples: Iterable[tuple],  # noqa: F821
                       batch_size: Optional[int] = None, formatted: bool = False) -> None:
         """
         Inserts model_class namedtuples

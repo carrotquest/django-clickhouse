@@ -2,19 +2,20 @@
 This file contains wrappers for infi.clckhouse_orm engines to use in django-clickhouse
 """
 import datetime
-from typing import List, Type, Union, Iterable, Generator, Optional
+from typing import List, Type, Union, Iterable, Optional
 
 from django.db.models import Model as DjangoModel
 from infi.clickhouse_orm import engines as infi_engines
 from statsd.defaults.django import statsd
 
+from .clickhouse_models import ClickHouseModel
 from .configuration import config
 from .database import connections
 from .utils import format_datetime
 
 
 class InsertOnlyEngineMixin:
-    def get_insert_batch(self, model_cls: Type['ClickHouseModel'], objects: List[DjangoModel]) -> Iterable[tuple]:
+    def get_insert_batch(self, model_cls: Type[ClickHouseModel], objects: List[DjangoModel]) -> Iterable[tuple]:
         """
         Gets a list of model_cls instances to insert into database
         :param model_cls: ClickHouseModel subclass to import
@@ -47,9 +48,9 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
     def _get_final_versions_by_version(self, db_alias, model_cls, min_date, max_date, object_pks, date_col, columns):
         query = """
             SELECT {columns} FROM $table WHERE (`{pk_column}`, `{version_col}`) IN (
-                SELECT `{pk_column}`, MAX(`{version_col}`) 
-                FROM $table 
-                PREWHERE `{date_col}` >= '{min_date}' AND `{date_col}` <= '{max_date}' 
+                SELECT `{pk_column}`, MAX(`{version_col}`)
+                FROM $table
+                PREWHERE `{date_col}` >= '{min_date}' AND `{date_col}` <= '{max_date}'
                     AND `{pk_column}` IN ({object_pks})
                 GROUP BY `{pk_column}`
            )
@@ -68,7 +69,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
                              max_date=max_date, object_pks=','.join(object_pks))
         return connections[db_alias].select_tuples(query, model_cls)
 
-    def get_final_versions(self, model_cls: Type['ClickHouseModel'], objects: Iterable[DjangoModel],
+    def get_final_versions(self, model_cls: Type[ClickHouseModel], objects: Iterable[DjangoModel],
                            date_col: Optional[str] = None) -> Iterable[tuple]:
         """
         Get objects, that are currently stored in ClickHouse.
@@ -122,7 +123,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         else:
             return self._get_final_versions_by_final(*params)
 
-    def get_insert_batch(self, model_cls: Type['ClickHouseModel'], objects: List[DjangoModel]) -> Iterable[tuple]:
+    def get_insert_batch(self, model_cls: Type[ClickHouseModel], objects: List[DjangoModel]) -> Iterable[tuple]:
         """
         Gets a list of model_cls instances to insert into database
         :param model_cls: ClickHouseModel subclass to import
