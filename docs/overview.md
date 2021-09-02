@@ -1,6 +1,6 @@
 # Usage overview
 ## Requirements
-At the begging I expect, that you already have:
+At the beginning I expect, that you already have:
 1. [ClickHouse](https://clickhouse.tech/docs/en/) (with [ZooKeeper](https://zookeeper.apache.org/), if you use replication)
 2. Relational database used with [Django](https://www.djangoproject.com/). For instance, [PostgreSQL](https://www.postgresql.org/)
 3. [Django database set up](https://docs.djangoproject.com/en/3.0/ref/databases/)
