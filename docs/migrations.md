@@ -57,6 +57,24 @@ By default migrations are applied to all [CLICKHOUSE_DATABASES](configuration.md
 Note: migrations are only applied, with django `default` database.  
 So if you call `python manage.py migrate --database=secondary` they wouldn't be applied.
 
+## Admin migration command
+In order to make migrations separately from django's `manage.py migrate` command,
+this library implements custom `manage.py` command `clickhouse_migrate`.
+
+Usage:
+```bash
+python manage.py clickhouse_migrate [--help] [--database <db_alias>] [--verbosity {0,1,2,3}] [app_label] [migration_number]
+```
+
+Parameters
+* `app_label: Optional[str]` - If set, migrates only given django application  
+* `migration_number: Optional[int]` - If set, migrate django app with `app_label` to migration with this number   
+    **Important note**: Library currently does not support unapplying migrations. 
+      If already applied migration is given - it will do noting.
+* `--database: Optional[str]` - If set, migrates only this database alias from [CLICKHOUSE_DATABASES config parameter](configuration.md#clickhouse_databases)
+* `--verbosity: Optional[int] = 1` - Level of debug output. See [here](https://docs.djangoproject.com/en/3.2/ref/django-admin/#cmdoption-verbosity) for more details.
+* `--help` - Print help
+
 ## Migration algorithm
 - Get a list of databases from `CLICKHOUSE_DATABASES` setting. Migrate them one by one.  
   - Find all django apps from `INSTALLED_APPS` setting, which have no `readonly=True` attribute and have `migrate=True` attribute. Migrate them one by one.  

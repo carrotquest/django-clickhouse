@@ -13,8 +13,8 @@ with open('requirements.txt') as f:
 
 setup(
     name='django-clickhouse',
-    version='1.0.4',
-    packages=['django_clickhouse'],
+    version='1.1.0',
+    packages=['django_clickhouse', 'django_clickhouse.management.commands'],
     package_dir={'': 'src'},
     url='https://github.com/carrotquest/django-clickhouse',
     license='BSD 3-clause "New" or "Revised" License',
