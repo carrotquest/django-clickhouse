@@ -7,8 +7,7 @@ from django.test import TestCase, override_settings
 from django_clickhouse.configuration import config
 from django_clickhouse.database import connections
 from django_clickhouse.management.commands.clickhouse_migrate import Command
-from django_clickhouse.migrations import MigrationHistory
-from django_clickhouse.migrations import migrate_app
+from django_clickhouse.migrations import MigrationHistory, migrate_app
 from django_clickhouse.routers import DefaultRouter
 from tests.clickhouse_models import ClickHouseTestModel
 
@@ -99,18 +98,18 @@ class MigrateDjangoCommandTest(TestCase):
 
         migrate_app_mock.assert_called_with('tests', 'default', up_to=1, verbosity=3)
 
-    def _test_parser_results(self, input: List[str], expected: Dict[str, Any]) -> None:
+    def _test_parser_results(self, argv: List[str], expected: Dict[str, Any]) -> None:
         """
         Tests if parser process input correctly.
         Checks only expected parameters, ignores others.
-        :param input: List of string arguments from command line
+        :param argv: List of string arguments from command line
         :param expected: Dictionary of expected results
         :return: None
         :raises AssertionError: If expected result is incorrect
         """
         parser = self.cmd.create_parser('./manage.py', 'clickhouse_migrate')
 
-        options = parser.parse_args(input)
+        options = parser.parse_args(argv)
 
         # Copied from django.core.management.base.BaseCommand.run_from_argv('...')
         cmd_options = vars(options)
