@@ -1,7 +1,13 @@
-from django.test import TestCase, override_settings
-from django_clickhouse.migrations import MigrationHistory
+from typing import List, Dict, Any
+from unittest import mock
 
+from django.conf import settings
+from django.test import TestCase, override_settings
+
+from django_clickhouse.configuration import config
 from django_clickhouse.database import connections
+from django_clickhouse.management.commands.clickhouse_migrate import Command
+from django_clickhouse.migrations import MigrationHistory
 from django_clickhouse.migrations import migrate_app
 from django_clickhouse.routers import DefaultRouter
 from tests.clickhouse_models import ClickHouseTestModel
@@ -53,3 +59,102 @@ class MigrateAppTest(TestCase):
     def test_readonly_connections(self):
         migrate_app('tests', 'readonly')
         self.assertFalse(table_exists(connections['readonly'], ClickHouseTestModel))
+
+
+@override_settings(CLICKHOUSE_MIGRATE_WITH_DEFAULT_DB=False)
+@mock.patch('django_clickhouse.management.commands.clickhouse_migrate.migrate_app', return_value=True)
+class MigrateDjangoCommandTest(TestCase):
+    def setUp(self) -> None:
+        self.cmd = Command()
+
+    def test_handle_all(self, migrate_app_mock):
+        self.cmd.handle(verbosity=3, app_label=None, database=None, migration_number=None)
+
+        self.assertEqual(len(config.DATABASES.keys()) * len(settings.INSTALLED_APPS), migrate_app_mock.call_count)
+        for db_alias in config.DATABASES.keys():
+            for app_label in settings.INSTALLED_APPS:
+                migrate_app_mock.assert_any_call(app_label, db_alias, verbosity=3)
+
+    def test_handle_app(self, migrate_app_mock):
+        self.cmd.handle(verbosity=3, app_label='tests', database=None, migration_number=None)
+
+        self.assertEqual(len(config.DATABASES.keys()), migrate_app_mock.call_count)
+        for db_alias in config.DATABASES.keys():
+            migrate_app_mock.assert_any_call('tests', db_alias, verbosity=3)
+
+    def test_handle_database(self, migrate_app_mock):
+        self.cmd.handle(verbosity=3, database='default', app_label=None, migration_number=None)
+
+        self.assertEqual(len(settings.INSTALLED_APPS), migrate_app_mock.call_count)
+        for app_label in settings.INSTALLED_APPS:
+            migrate_app_mock.assert_any_call(app_label, 'default', verbosity=3)
+
+    def test_handle_app_and_database(self, migrate_app_mock):
+        self.cmd.handle(verbosity=3, app_label='tests', database='default', migration_number=None)
+
+        migrate_app_mock.assert_called_with('tests', 'default', verbosity=3)
+
+    def test_handle_migration_number(self, migrate_app_mock):
+        self.cmd.handle(verbosity=3, database='default', app_label='tests', migration_number=1)
+
+        migrate_app_mock.assert_called_with('tests', 'default', up_to=1, verbosity=3)
+
+    def _test_parser_results(self, input: List[str], expected: Dict[str, Any]) -> None:
+        """
+        Tests if parser process input correctly.
+        Checks only expected parameters, ignores others.
+        :param input: List of string arguments from command line
+        :param expected: Dictionary of expected results
+        :return: None
+        :raises AssertionError: If expected result is incorrect
+        """
+        parser = self.cmd.create_parser('./manage.py', 'clickhouse_migrate')
+
+        options = parser.parse_args(input)
+
+        # Copied from django.core.management.base.BaseCommand.run_from_argv('...')
+        cmd_options = vars(options)
+        cmd_options.pop('args', ())
+
+        self.assertDictEqual(expected, {opt: cmd_options[opt] for opt in expected.keys()})
+
+    def test_parser(self, _):
+        with self.subTest('Simple'):
+            self._test_parser_results([], {
+                'app_label': None,
+                'database': None,
+                'migration_number': None,
+                'verbosity': 1
+            })
+
+        with self.subTest('App label'):
+            self._test_parser_results(['tests'], {
+                'app_label': 'tests',
+                'database': None,
+                'migration_number': None,
+                'verbosity': 1
+            })
+
+        with self.subTest('App label and migration number'):
+            self._test_parser_results(['tests', '123'], {
+                'app_label': 'tests',
+                'database': None,
+                'migration_number': 123,
+                'verbosity': 1
+            })
+
+        with self.subTest('Database'):
+            self._test_parser_results(['--database', 'default'], {
+                'app_label': None,
+                'database': 'default',
+                'migration_number': None,
+                'verbosity': 1
+            })
+
+        with self.subTest('Verbosity'):
+            self._test_parser_results(['--verbosity', '2'], {
+                'app_label': None,
+                'database': None,
+                'migration_number': None,
+                'verbosity': 2
+            })

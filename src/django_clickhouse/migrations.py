@@ -46,42 +46,63 @@ class Migration:
                 op.apply(database)
 
 
-def migrate_app(app_label: str, db_alias: str, up_to: int = 9999, database: Optional[Database] = None) -> None:
+def migrate_app(app_label: str, db_alias: str, up_to: int = 9999, database: Optional[Database] = None,
+                verbosity: int = 1) -> bool:
     """
     Migrates given django app
     :param app_label: App label to migrate
     :param db_alias: Database alias to migrate
     :param up_to: Migration number to migrate to
     :param database: Sometimes I want to pass db object directly for testing purposes
-    :return: None
+    :param verbosity: 0-4, уровень verbosity вывода
+    :return: True if any migration has been applied
     """
     # Can't migrate such connection, just skip it
     if config.DATABASES[db_alias].get('readonly', False):
-        return
+        if verbosity > 1:
+            print('Skipping database "%s": marked as readonly' % db_alias)
+        return False
 
     # Ignore force not migrated databases
     if not config.DATABASES[db_alias].get('migrate', True):
-        return
+        if verbosity > 1:
+            print('Skipping database "%s": migrations are restricted in configuration' % db_alias)
+        return False
 
     migrations_package = "%s.%s" % (app_label, config.MIGRATIONS_PACKAGE)
 
-    if module_exists(migrations_package):
-        database = database or connections[db_alias]
-        migration_history_model = lazy_class_import(config.MIGRATION_HISTORY_MODEL)
+    if not module_exists(migrations_package):
+        if verbosity > 1:
+            print('Skipping migrations for app "%s": no migration_package "%s"' % (app_label, migrations_package))
+        return False
 
-        applied_migrations = migration_history_model.get_applied_migrations(db_alias, migrations_package)
-        modules = import_submodules(migrations_package)
-        unapplied_migrations = set(modules.keys()) - applied_migrations
+    database = database or connections[db_alias]
+    migration_history_model = lazy_class_import(config.MIGRATION_HISTORY_MODEL)
 
-        for name in sorted(unapplied_migrations):
+    applied_migrations = migration_history_model.get_applied_migrations(db_alias, migrations_package)
+    modules = import_submodules(migrations_package)
+    unapplied_migrations = set(modules.keys()) - applied_migrations
+
+    any_applied = False
+    for name in sorted(unapplied_migrations):
+        if int(name[:4]) > up_to:
+            break
+
+        if verbosity > 0:
             print('Applying ClickHouse migration %s for app %s in database %s' % (name, app_label, db_alias))
-            migration = modules[name].Migration()
-            migration.apply(db_alias, database=database)
 
-            migration_history_model.set_migration_applied(db_alias, migrations_package, name)
+        migration = modules[name].Migration()
+        migration.apply(db_alias, database=database)
 
-            if int(name[:4]) >= up_to:
-                break
+        migration_history_model.set_migration_applied(db_alias, migrations_package, name)
+        any_applied = True
+
+    if not any_applied:
+        if verbosity > 1:
+            print('No migrations to apply for app "%s" does not exist' % app_label)
+        return False
+
+    return True
 
 
 @receiver(post_migrate)
@@ -97,7 +118,7 @@ def clickhouse_migrate(sender, **kwargs):
     app_name = kwargs['app_config'].name
 
     for db_alias in config.DATABASES:
-        migrate_app(app_name, db_alias)
+        migrate_app(app_name, db_alias, verbosity=kwargs.get('verbosity', 1))
 
 
 class MigrationHistory(ClickHouseModel):
