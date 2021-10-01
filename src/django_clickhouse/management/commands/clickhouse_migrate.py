@@ -25,7 +25,7 @@ class Command(BaseCommand):
 
         parser.add_argument('--database', '-d', nargs='?', type=str, required=False, choices=config.DATABASES.keys(),
                             help='ClickHouse database alias key from CLICKHOUSE_DATABASES django setting.'
-                                 ' By defaults migrations are applied to all databases.')
+                                 ' By default migrations are applied to all databases.')
 
     def handle(self, *args, **options) -> None:
         apps = [options['app_label']] if options['app_label'] else [app.name for app in django_apps.get_app_configs()]
