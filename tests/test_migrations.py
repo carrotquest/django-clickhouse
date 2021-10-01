@@ -63,15 +63,17 @@ class MigrateAppTest(TestCase):
 @override_settings(CLICKHOUSE_MIGRATE_WITH_DEFAULT_DB=False)
 @mock.patch('django_clickhouse.management.commands.clickhouse_migrate.migrate_app', return_value=True)
 class MigrateDjangoCommandTest(TestCase):
+    APP_LABELS = ('src', 'tests')
+
     def setUp(self) -> None:
         self.cmd = Command()
 
     def test_handle_all(self, migrate_app_mock):
         self.cmd.handle(verbosity=3, app_label=None, database=None, migration_number=None)
 
-        self.assertEqual(len(config.DATABASES.keys()) * len(settings.INSTALLED_APPS), migrate_app_mock.call_count)
+        self.assertEqual(len(config.DATABASES.keys()) * len(self.APP_LABELS), migrate_app_mock.call_count)
         for db_alias in config.DATABASES.keys():
-            for app_label in settings.INSTALLED_APPS:
+            for app_label in self.APP_LABELS:
                 migrate_app_mock.assert_any_call(app_label, db_alias, verbosity=3)
 
     def test_handle_app(self, migrate_app_mock):
@@ -85,7 +87,7 @@ class MigrateDjangoCommandTest(TestCase):
         self.cmd.handle(verbosity=3, database='default', app_label=None, migration_number=None)
 
         self.assertEqual(len(settings.INSTALLED_APPS), migrate_app_mock.call_count)
-        for app_label in settings.INSTALLED_APPS:
+        for app_label in self.APP_LABELS:
             migrate_app_mock.assert_any_call(app_label, 'default', verbosity=3)
 
     def test_handle_app_and_database(self, migrate_app_mock):
