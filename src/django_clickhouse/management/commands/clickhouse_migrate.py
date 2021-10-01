@@ -3,7 +3,7 @@ Django command that applies migrations for ClickHouse database
 """
 import json
 
-from django.conf import settings
+from django.apps import apps as django_apps
 from django.core.management import BaseCommand, CommandParser
 
 from ...configuration import config
@@ -28,7 +28,7 @@ class Command(BaseCommand):
                                  ' By defaults migrations are applied to all databases.')
 
     def handle(self, *args, **options) -> None:
-        apps = [options['app_label']] if options['app_label'] else list(settings.INSTALLED_APPS)
+        apps = [options['app_label']] if options['app_label'] else [app.name for app in django_apps.get_app_configs()]
         databases = [options['database']] if options['database'] else list(config.DATABASES.keys())
         kwargs = {'up_to': options['migration_number']} if options['migration_number'] else {}
 

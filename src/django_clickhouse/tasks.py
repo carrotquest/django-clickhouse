@@ -3,7 +3,7 @@ import importlib
 from typing import Type, Union
 
 from celery import shared_task
-from django.conf import settings
+from django.apps import apps as django_apps
 from infi.clickhouse_orm.utils import import_submodules
 
 from django_clickhouse.clickhouse_models import ClickHouseModel
@@ -32,8 +32,8 @@ def clickhouse_auto_sync() -> None:
     :return: None
     """
     # Import all model modules
-    for app in settings.INSTALLED_APPS:
-        package_name = "%s.%s" % (app, config.MODELS_MODULE)
+    for app in django_apps.get_app_configs():
+        package_name = "%s.%s" % (app.name, config.MODELS_MODULE)
         try:
             module = importlib.import_module(package_name)
             if hasattr(module, '__path__'):

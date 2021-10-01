@@ -112,7 +112,7 @@ def clickhouse_migrate(sender, **kwargs):
         return
 
     if kwargs.get('using', DJANGO_DEFAULT_DB_ALIAS) != DJANGO_DEFAULT_DB_ALIAS:
-        # Не надо выполнять синхронизацию для каждого шарда. Только один раз.
+        # Don't call sync for every database. Just once.
         return
 
     app_name = kwargs['app_config'].name
@@ -124,9 +124,7 @@ def clickhouse_migrate(sender, **kwargs):
 class MigrationHistory(ClickHouseModel):
     """
     A model for storing which migrations were already applied to database.
-    This
     """
-
     db_alias = StringField()
     package_name = StringField()
     module_name = StringField()

@@ -56,7 +56,9 @@ LOGGING = {
 
 INSTALLED_APPS = [
     "src",
-    "tests"
+
+    # This app is included with config in order to test all is working fine here
+    "tests.apps.UnitTestAppConfig"
 ]
 
 CLICKHOUSE_DATABASES = {
