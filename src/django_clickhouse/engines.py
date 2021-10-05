@@ -58,6 +58,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         :param object_pks: Objects primary keys to filter by
         :param columns: Columns to fetch
         :param date_range_filter: Optional date_range_filter which speeds up query if date_col is set
+        :return: List of named tuples with requested columns
         """
         if date_range_filter:
             date_range_filter = 'PREWHERE {}'.format(date_range_filter)
@@ -83,6 +84,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         :param object_pks: Objects primary keys to filter by
         :param columns: Columns to fetch
         :param date_range_filter: Optional date_range_filter which speeds up query if date_col is set
+        :return: List of named tuples with requested columns
         """
         if date_range_filter:
             date_range_filter += ' AND'
@@ -98,7 +100,12 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
     def _get_date_rate_filter(self, objects, model_cls: Type[ClickHouseModel], db_alias: str,
                               date_col: Optional[str]) -> str:
         """
-        Generates
+        Generates datetime filter to speed up final queries, if date_col is present
+        :param objects: Objects, which are inserted
+        :param model_cls: Model class for which data is fetched
+        :param db_alias: ClickHouse database alias used
+        :param date_col: Optional column name, where partition date is hold. Defaults to self.date_col
+        :return: String to add to WHERE or PREWHERE query section
         """
         def _dt_to_str(dt: Union[datetime.date, datetime.datetime]) -> str:
             if isinstance(dt, datetime.datetime):
@@ -142,7 +149,7 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         It also supposes primary key to by self.pk_column
         :param model_cls: ClickHouseModel subclass to import
         :param objects: Objects for which final versions are searched
-        :param date_col: Optional column name, where partiion date is hold. Defaults to self.date_col
+        :param date_col: Optional column name, where partition date is hold. Defaults to self.date_col
         :return: A generator of named tuples, representing previous state
         """
         if not objects:
