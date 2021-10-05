@@ -2,7 +2,8 @@
 This file contains wrappers for infi.clckhouse_orm engines to use in django-clickhouse
 """
 import datetime
-from typing import List, Type, Union, Iterable, Optional
+import logging
+from typing import List, Type, Union, Iterable, Optional, Tuple, NamedTuple
 
 from django.db.models import Model as DjangoModel
 from infi.clickhouse_orm import engines as infi_engines
@@ -12,6 +13,9 @@ from .clickhouse_models import ClickHouseModel
 from .configuration import config
 from .database import connections
 from .utils import format_datetime
+
+
+logger = logging.getLogger('django-clickhouse')
 
 
 class InsertOnlyEngineMixin:
@@ -45,29 +49,89 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         self.version_col = kwargs.pop('version_col', None)
         super(CollapsingMergeTree, self).__init__(*args, **kwargs)
 
-    def _get_final_versions_by_version(self, db_alias, model_cls, min_date, max_date, object_pks, date_col, columns):
+    def _get_final_versions_by_version(self, db_alias: str, model_cls: Type[ClickHouseModel], object_pks: Iterable[str],
+                                       columns: str, date_range_filter: str = '') -> List[NamedTuple]:
+        """
+        Performs request to ClickHouse in order to fetch latest version for each object pk
+        :param db_alias: ClickHouse database alias used
+        :param model_cls: Model class for which data is fetched
+        :param object_pks: Objects primary keys to filter by
+        :param columns: Columns to fetch
+        :param date_range_filter: Optional date_range_filter which speeds up query if date_col is set
+        """
+        if date_range_filter:
+            date_range_filter = 'PREWHERE {}'.format(date_range_filter)
+
         query = """
-            SELECT {columns} FROM $table WHERE (`{pk_column}`, `{version_col}`) IN (
-                SELECT `{pk_column}`, MAX(`{version_col}`)
-                FROM $table
-                PREWHERE `{date_col}` >= '{min_date}' AND `{date_col}` <= '{max_date}'
-                    AND `{pk_column}` IN ({object_pks})
-                GROUP BY `{pk_column}`
-           )
-        """.format(columns=','.join(columns), version_col=self.version_col, date_col=date_col, pk_column=self.pk_column,
-                   min_date=min_date, max_date=max_date, object_pks=','.join(object_pks))
+            SELECT {columns}
+            FROM $table
+            {date_range_filter}
+            WHERE `{pk_column}` IN ({object_pks})
+            ORDER BY `{pk_column}`, `{version_col}` DESC
+            LIMIT 1 BY `{pk_column}`
+        """.format(columns=','.join(columns), version_col=self.version_col, pk_column=self.pk_column,
+                   date_range_filter=date_range_filter, object_pks=','.join(object_pks), sign_col=self.sign_col)
 
         return connections[db_alias].select_tuples(query, model_cls)
 
-    def _get_final_versions_by_final(self, db_alias, model_cls, min_date, max_date, object_pks, date_col, columns):
+    def _get_final_versions_by_final(self, db_alias: str, model_cls: Type[ClickHouseModel], object_pks: Iterable[str],
+                                     columns: str, date_range_filter: str = '') -> List[NamedTuple]:
+        """
+        Performs request to ClickHouse in order to fetch latest version for each object pk
+        :param db_alias: ClickHouse database alias used
+        :param model_cls: Model class for which data is fetched
+        :param object_pks: Objects primary keys to filter by
+        :param columns: Columns to fetch
+        :param date_range_filter: Optional date_range_filter which speeds up query if date_col is set
+        """
+        if date_range_filter:
+            date_range_filter += ' AND'
+
         query = """
             SELECT {columns} FROM $table FINAL
-            WHERE `{date_col}` >= '{min_date}' AND `{date_col}` <= '{max_date}'
-                AND `{pk_column}` IN ({object_pks})
+            WHERE {date_range_filter} `{pk_column}` IN ({object_pks})
         """
-        query = query.format(columns=','.join(columns), date_col=date_col, pk_column=self.pk_column, min_date=min_date,
-                             max_date=max_date, object_pks=','.join(object_pks))
+        query = query.format(columns=','.join(columns), pk_column=self.pk_column, date_range_filter=date_range_filter,
+                             object_pks=','.join(object_pks))
         return connections[db_alias].select_tuples(query, model_cls)
+
+    def _get_date_rate_filter(self, objects, model_cls: Type[ClickHouseModel], db_alias: str,
+                              date_col: Optional[str]) -> str:
+        """
+        Generates
+        """
+        def _dt_to_str(dt: Union[datetime.date, datetime.datetime]) -> str:
+            if isinstance(dt, datetime.datetime):
+                return format_datetime(dt, 0, db_alias=db_alias)
+            elif isinstance(dt, datetime.date):
+                return dt.isoformat()
+            else:
+                raise Exception('Invalid date or datetime object: `%s`' % dt)
+
+        date_col = date_col or self.date_col
+
+        if not date_col:
+            logger.warning('django-clickhouse: date_col is not provided for model %s.'
+                           ' This can cause significant performance problems while fetching data.'
+                           ' It is worth inheriting CollapsingMergeTree engine with custom get_final_versions() method,'
+                           ' based on your partition_key' % model_cls)
+            return ''
+
+        min_date, max_date = None, None
+        for obj in objects:
+            obj_date = getattr(obj, date_col)
+
+            if min_date is None or min_date > obj_date:
+                min_date = obj_date
+
+            if max_date is None or max_date < obj_date:
+                max_date = obj_date
+
+        min_date = _dt_to_str(min_date)
+        max_date = _dt_to_str(max_date)
+
+        return "`{date_col}` >= '{min_date}' AND `{date_col}` <= '{max_date}'".\
+            format(min_date=min_date, max_date=max_date, date_col=date_col)
 
     def get_final_versions(self, model_cls: Type[ClickHouseModel], objects: Iterable[DjangoModel],
                            date_col: Optional[str] = None) -> Iterable[tuple]:
@@ -81,42 +145,21 @@ class CollapsingMergeTree(InsertOnlyEngineMixin, infi_engines.CollapsingMergeTre
         :param date_col: Optional column name, where partiion date is hold. Defaults to self.date_col
         :return: A generator of named tuples, representing previous state
         """
-
-        def _dt_to_str(dt: Union[datetime.date, datetime.datetime]) -> str:
-            if isinstance(dt, datetime.datetime):
-                return format_datetime(dt, 0, db_alias=db_alias)
-            elif isinstance(dt, datetime.date):
-                return dt.isoformat()
-            else:
-                raise Exception('Invalid date or datetime object: `%s`' % dt)
-
         if not objects:
             raise StopIteration()
-
-        date_col = date_col or self.date_col
-        min_date, max_date = None, None
-        for obj in objects:
-            obj_date = getattr(obj, date_col)
-
-            if min_date is None or min_date > obj_date:
-                min_date = obj_date
-
-            if max_date is None or max_date < obj_date:
-                max_date = obj_date
 
         object_pks = [str(getattr(obj, self.pk_column)) for obj in objects]
 
         db_alias = model_cls.get_database_alias()
 
-        min_date = _dt_to_str(min_date)
-        max_date = _dt_to_str(max_date)
+        date_range_filter = self._get_date_rate_filter(objects, model_cls, db_alias, date_col)
 
         # Get fields. Sign is replaced to negative for further processing
         columns = list(model_cls.fields(writable=True).keys())
         columns.remove(self.sign_col)
         columns.append('-1 AS sign')
 
-        params = (db_alias, model_cls, min_date, max_date, object_pks, date_col, columns)
+        params = (db_alias, model_cls, object_pks, columns, date_range_filter)
 
         if self.version_col:
             return self._get_final_versions_by_version(*params)
