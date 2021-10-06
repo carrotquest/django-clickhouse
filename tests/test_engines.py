@@ -88,10 +88,23 @@ class CollapsingMergeTreeTest(TestCase):
                                                                                self.objects, date_col='created')
         self._test_final_versions(final_versions)
 
+    def test_get_final_versions_by_final_no_date_col(self):
+        ClickHouseCollapseTestModel.engine.date_col = None
+        final_versions = ClickHouseCollapseTestModel.engine.get_final_versions(ClickHouseCollapseTestModel,
+                                                                               self.objects)
+        self._test_final_versions(final_versions)
+
     def test_get_final_versions_by_version_datetime(self):
         ClickHouseCollapseTestModel.engine.version_col = 'version'
         final_versions = ClickHouseCollapseTestModel.engine.get_final_versions(ClickHouseCollapseTestModel,
                                                                                self.objects, date_col='created')
+        self._test_final_versions(final_versions)
+
+    def test_get_final_versions_by_version_no_date_col(self):
+        ClickHouseCollapseTestModel.engine.version_col = 'version'
+        ClickHouseCollapseTestModel.engine.date_col = None
+        final_versions = ClickHouseCollapseTestModel.engine.get_final_versions(ClickHouseCollapseTestModel,
+                                                                               self.objects)
         self._test_final_versions(final_versions)
 
     def test_versions(self):
