@@ -23,7 +23,7 @@ class Command(BaseCommand):
                                  ' By default all available migrations are applied.'
                                  ' Note that library currently have no ability rollback migrations')
 
-        parser.add_argument('--database', '-d', nargs='?', type=str, required=False, choices=config.DATABASES.keys(),
+        parser.add_argument('--database', '-d', nargs='?', type=str, required=False, choices=list(config.DATABASES.keys()),
                             help='ClickHouse database alias key from CLICKHOUSE_DATABASES django setting.'
                                  ' By default migrations are applied to all databases.')
 
