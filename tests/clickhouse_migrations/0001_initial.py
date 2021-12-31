@@ -1,10 +1,10 @@
 
-from django_clickhouse import migrations
+from django_clickhouse import migrations, migration_operators
 from tests.clickhouse_models import ClickHouseTestModel, ClickHouseCollapseTestModel
 
 
 class Migration(migrations.Migration):
     operations = [
-        migrations.CreateTable(ClickHouseTestModel),
-        migrations.CreateTable(ClickHouseCollapseTestModel)
+        migration_operators.CreateTable(ClickHouseTestModel),
+        migration_operators.CreateTable(ClickHouseCollapseTestModel)
     ]
