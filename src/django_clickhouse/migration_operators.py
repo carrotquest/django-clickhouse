@@ -1,4 +1,5 @@
 from infi import clickhouse_orm
+from .configuration import config
 
 
 class HintParamMixin:
@@ -7,6 +8,12 @@ class HintParamMixin:
             hints = dict()
         self.hints = hints
         super(HintParamMixin, self).__init__(*args, **kwargs)
+        if not any([
+            isinstance(self, clickhouse_orm.ModelOperation),
+            'model' not in hints.keys(),
+            'force_migrate_on_databases' not in hints.keys()
+        ]):
+            self.hints['force_migrate_on_databases'] = (config.DEFAULT_DB_ALIAS,)
 
 
 class CreateTable(HintParamMixin, clickhouse_orm.CreateTable):
