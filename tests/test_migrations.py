@@ -1,5 +1,6 @@
 from typing import List, Dict, Any
 from unittest import mock
+from unittest.mock import patch
 
 from django.conf import settings
 from django.test import TestCase, override_settings
@@ -7,6 +8,7 @@ from django.test import TestCase, override_settings
 from django_clickhouse.configuration import config
 from django_clickhouse.database import connections
 from django_clickhouse.management.commands.clickhouse_migrate import Command
+from django_clickhouse.migration_operators import RunPython
 from django_clickhouse.migrations import MigrationHistory, migrate_app
 from django_clickhouse.routers import DefaultRouter
 from tests.clickhouse_models import ClickHouseTestModel
@@ -58,6 +60,11 @@ class MigrateAppTest(TestCase):
     def test_readonly_connections(self):
         migrate_app('tests', 'readonly')
         self.assertFalse(table_exists(connections['readonly'], ClickHouseTestModel))
+
+    @patch.object(RunPython, 'apply')
+    def test_hint_param(self, mock_python_exec):
+        migrate_app('tests', 'default')
+        self.assertEqual(1, mock_python_exec.call_count)
 
 
 @override_settings(CLICKHOUSE_MIGRATE_WITH_DEFAULT_DB=False)
