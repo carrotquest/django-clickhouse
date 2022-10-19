@@ -75,6 +75,12 @@ Parameters
 * `--verbosity: Optional[int] = 1` - Level of debug output. See [here](https://docs.djangoproject.com/en/3.2/ref/django-admin/#cmdoption-verbosity) for more details.
 * `--help` - Print help
 
+
+## Migration operations enhancements
+* `RunSQL`, `RunPython`  
+  Can accept `hints: dict = {}` parameter in order to set migration database alias (`force_migrate_on_databases: List[str]` key) or model (`model: Union[str, Type[ClickHouseModel]]` key)
+  
+
 ## Migration algorithm
 - Get a list of databases from `CLICKHOUSE_DATABASES` setting. Migrate them one by one.  
   - Find all django apps from `INSTALLED_APPS` setting, which have no `readonly=True` attribute and have `migrate=True` attribute. Migrate them one by one.  
