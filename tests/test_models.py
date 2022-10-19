@@ -112,7 +112,7 @@ class TestOperations(TransactionTestCase):
             self.assertEqual(instance.created_date, now_dt.date())
             self.assertEqual(i, instance.value)
 
-        self.assertSetEqual({('insert', "%s.%d" % (self.db_alias, instance.pk)) for instance in items},
+        self.assertSetEqual({('insert', "%s.%d" % (self.db_alias, instance.pk)) for instance in res},
                             set(self.storage.get_operations(self.clickhouse_model.get_import_key(), 10)))
 
     def test_pg_bulk_update(self):
