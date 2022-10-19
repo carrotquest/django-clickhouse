@@ -185,7 +185,7 @@ class RunSQL(LibRunSQL):
         self.hints = hints or {}
 
 
-class RunPython(LibRunSQL):
+class RunPython(LibRunPython):
     def __init__(self, *args, hints: Optional[dict] = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.hints = hints or {}
