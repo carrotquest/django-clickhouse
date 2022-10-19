@@ -107,7 +107,7 @@ class TestOperations(TransactionTestCase):
         ], returning='*')
 
         self.assertEqual(5, len(res))
-        for i, instance in enumerate(items):
+        for i, instance in enumerate(res):
             self.assertEqual(instance.created, now_dt)
             self.assertEqual(instance.created_date, now_dt.date())
             self.assertEqual(i, instance.value)
@@ -140,7 +140,7 @@ class TestOperations(TransactionTestCase):
         ], returning='*')
 
         self.assertEqual(2, len(res))
-        for instance in items:
+        for instance in res:
             self.assertEqual(instance.value, instance.pk * 10)
 
         self.assertSetEqual({('update', "%s.%d" % (self.db_alias, instance.pk)) for instance in items},
@@ -182,7 +182,7 @@ class TestOperations(TransactionTestCase):
         for instance in res:
             self.assertEqual(instance.value, instance.pk * 10)
 
-        self.assertSetEqual({('update', "%s.%d" % (self.db_alias, instance.pk)) for instance in items},
+        self.assertSetEqual({('update', "%s.%d" % (self.db_alias, instance.pk)) for instance in res},
                             set(self.storage.get_operations(self.clickhouse_model.get_import_key(), 10)))
 
     def test_get_or_create(self):
