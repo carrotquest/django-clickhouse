@@ -99,6 +99,22 @@ class TestOperations(TransactionTestCase):
         self.assertSetEqual({('insert', "%s.%d" % (self.db_alias, instance.pk)) for instance in items},
                             set(self.storage.get_operations(self.clickhouse_model.get_import_key(), 10)))
 
+    def test_pg_bulk_create_returning(self):
+        now_dt = now()
+        res = self.django_model.objects.pg_bulk_create([
+            {'value': i, 'created': now_dt, 'created_date': now_dt.date()}
+            for i in range(5)
+        ], returning='*')
+
+        self.assertEqual(5, len(res))
+        for i, instance in enumerate(res):
+            self.assertEqual(instance.created, now_dt)
+            self.assertEqual(instance.created_date, now_dt.date())
+            self.assertEqual(i, instance.value)
+
+        self.assertSetEqual({('insert', "%s.%d" % (self.db_alias, instance.pk)) for instance in res},
+                            set(self.storage.get_operations(self.clickhouse_model.get_import_key(), 10)))
+
     def test_pg_bulk_update(self):
         items = list(self.django_model.objects.filter(pk__in={1, 2}))
 
@@ -110,6 +126,21 @@ class TestOperations(TransactionTestCase):
         items = list(self.django_model.objects.filter(pk__in={1, 2}))
         self.assertEqual(2, len(items))
         for instance in items:
+            self.assertEqual(instance.value, instance.pk * 10)
+
+        self.assertSetEqual({('update', "%s.%d" % (self.db_alias, instance.pk)) for instance in items},
+                            set(self.storage.get_operations(self.clickhouse_model.get_import_key(), 10)))
+
+    def test_pg_bulk_update_returning(self):
+        items = list(self.django_model.objects.filter(pk__in={1, 2}))
+
+        res = self.django_model.objects.pg_bulk_update([
+            {'id': instance.pk, 'value': instance.pk * 10}
+            for instance in items
+        ], returning='*')
+
+        self.assertEqual(2, len(res))
+        for instance in res:
             self.assertEqual(instance.value, instance.pk * 10)
 
         self.assertSetEqual({('update', "%s.%d" % (self.db_alias, instance.pk)) for instance in items},
@@ -133,6 +164,25 @@ class TestOperations(TransactionTestCase):
             self.assertEqual(instance.value, instance.pk * 10)
 
         self.assertSetEqual({('update', "%s.%d" % (self.db_alias, instance.pk)) for instance in items},
+                            set(self.storage.get_operations(self.clickhouse_model.get_import_key(), 10)))
+
+    def test_pg_bulk_update_or_create_returning(self):
+        items = list(self.django_model.objects.filter(pk__in={1, 2}))
+
+        data = [{
+            'id': instance.pk,
+            'value': instance.pk * 10,
+            'created_date': instance.created_date,
+            'created': instance.created
+        } for instance in items] + [{'id': 11, 'value': 110, 'created_date': datetime.date.today(), 'created': now()}]
+
+        res = self.django_model.objects.pg_bulk_update_or_create(data, returning='*')
+
+        self.assertEqual(3, len(res))
+        for instance in res:
+            self.assertEqual(instance.value, instance.pk * 10)
+
+        self.assertSetEqual({('update', "%s.%d" % (self.db_alias, instance.pk)) for instance in res},
                             set(self.storage.get_operations(self.clickhouse_model.get_import_key(), 10)))
 
     def test_get_or_create(self):

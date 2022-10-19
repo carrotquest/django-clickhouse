@@ -64,7 +64,7 @@ class ClickHouseSyncBulkUpdateQuerySetMixin(ClickHouseSyncRegisterMixin, BulkUpd
         if returning is None:
             returning = pk_name
         elif isinstance(returning, str):
-            returning = [pk_name, returning]
+            returning = [pk_name, returning] if returning != '*' else '*'
         else:
             returning = list(returning) + [pk_name]
 
