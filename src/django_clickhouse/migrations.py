@@ -10,6 +10,7 @@ from django.dispatch import receiver
 
 # In order to support all operations import here
 from infi.clickhouse_orm.migrations import *  # noqa F401, F403
+from infi.clickhouse_orm.migrations import RunSQL as LibRunSQL, RunPython as LibRunPython
 
 from infi.clickhouse_orm.database import ServerError, DatabaseException
 from infi.clickhouse_orm.fields import StringField, DateField
@@ -176,3 +177,15 @@ class MigrationHistory(ClickHouseModel):
     @classmethod
     def table_name(cls):
         return 'django_clickhouse_migrations'
+
+
+class RunSQL(LibRunSQL):
+    def __init__(self, *args, hints: Optional[dict] = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.hints = hints or {}
+
+
+class RunPython(LibRunPython):
+    def __init__(self, *args, hints: Optional[dict] = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.hints = hints or {}
