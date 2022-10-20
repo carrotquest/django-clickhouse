@@ -40,10 +40,9 @@ class Migration:
         database = database or connections[db_alias]
 
         for op in self.operations:
-            model_class = getattr(op, 'model_class', None)
             hints = getattr(op, 'hints', {})
 
-            if db_router.allow_migrate(db_alias, self.__module__, op, model_class, **hints):
+            if db_router.allow_migrate(db_alias, self.__module__, op, **hints):
                 op.apply(database)
 
 

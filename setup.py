@@ -13,7 +13,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='django-clickhouse',
-    version='1.2.0',
+    version='1.2.1',
     packages=['django_clickhouse', 'django_clickhouse.management.commands'],
     package_dir={'': 'src'},
     url='https://github.com/carrotquest/django-clickhouse',

@@ -24,7 +24,7 @@ services:
     build:
       context: .
       args:
-        - PYTHON_VER=latest
+        - PYTHON_IMAGE_TAG=latest
     environment:
       - REDIS_HOST=redis_db
       - PGHOST=postgres_db

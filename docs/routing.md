@@ -25,12 +25,17 @@ Router is a class, defining 3 methods:
   Returns `database alias` to use for given `model` for `SELECT` queries.
 * `def db_for_write(self, model: ClickHouseModel, **hints) -> str`  
   Returns `database alias` to use for given `model` for `INSERT` queries.
-* `def allow_migrate(self, db_alias: str, app_label: str, operation: Operation, model: Optional[ClickHouseModel] = None, **hints: dict) -> bool`
+* `def allow_migrate(self, db_alias: str, app_label: str, operation: Operation, **hints: dict) -> bool`
   Checks if migration `operation` should be applied in django application `app_label` on database `db_alias`.
-  Optional `model` field can be used to determine migrations on concrete model.
+  Optional `hints` help to pass additional info which can be used to test migrations availability on concrete model.
 
 By default [CLICKHOUSE_DATABASE_ROUTER](configuration.md#clickhouse_database_router) is used.
  It gets routing information from model fields, described below.  
+ It also gives ability to use 2 kinds of hints:  
+ * `force_migrate_on_databases: Iterable[str]` - concrete database aliases where migration should be applied
+ * `model: Type[ClickHouseModel]` - a model class, to read routing attributes from. 
+    Can be set as class or its string name. 
+    If name is set, class is searched in current `<app_label>.<config.MODELS_MODULE>` package.  
  
 ## ClickHouseModel routing attributes
 Default database router reads routing settings from model attributes.
