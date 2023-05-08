@@ -112,7 +112,7 @@ class ClickHouseUser(ClickHouseModel):
 4. Add content to file `0001_initial.py`:
     ```python
     from django_clickhouse import migrations
-    from my_app.cilckhouse_models import ClickHouseUser
+    from my_app.clickhouse_models import ClickHouseUser
     
     class Migration(migrations.Migration):
         operations = [
