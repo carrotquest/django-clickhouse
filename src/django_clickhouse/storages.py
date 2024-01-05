@@ -11,6 +11,8 @@ import logging
 from typing import Any, Optional, List, Tuple
 
 import os
+
+from django.utils.timezone import now
 from statsd.defaults.django import statsd
 
 from .configuration import config
@@ -186,8 +188,7 @@ class RedisStorage(Storage, metaclass=SingletonMeta):
 
     def get_operations(self, import_key, count, **kwargs):
         ops_key = self.REDIS_KEY_OPS_TEMPLATE.format(import_key=import_key)
-        res = self._redis.zrangebyscore(ops_key, '-inf', datetime.datetime.now().timestamp(), start=0, num=count,
-                                        withscores=True)
+        res = self._redis.zrangebyscore(ops_key, '-inf', now().timestamp(), start=0, num=count, withscores=True)
 
         if res:
             ops, scores = zip(*res)

@@ -8,6 +8,7 @@ from time import sleep
 
 import datetime
 
+from django.utils.timezone import now
 
 # set Django environment
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -25,7 +26,7 @@ logger = logging.getLogger('django-clickhouse')
 def create(batch_size=1000, test_time=60, period=1, **kwargs):
     for iteration in range(int(test_time / period)):
         res = TestModel.objects.db_manager('test_db').bulk_create([
-            TestModel(created=datetime.datetime.now(), created_date='2018-01-01', value=iteration * batch_size + i)
+            TestModel(created=now(), created_date='2018-01-01', value=iteration * batch_size + i)
             for i in range(batch_size)
         ])
         logger.info('django-clickhouse: test created %d records' % len(res))
@@ -54,8 +55,8 @@ def sync(period=1, test_time=60, **kwargs):
     if kwargs['once']:
         ClickHouseCollapseTestModel.sync_batch_from_storage()
     else:
-        start = datetime.datetime.now()
-        while (datetime.datetime.now() - start).total_seconds() < test_time:
+        start = now()
+        while (now() - start).total_seconds() < test_time:
             ClickHouseCollapseTestModel.sync_batch_from_storage()
             sleep(period)
 

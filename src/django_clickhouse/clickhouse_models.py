@@ -9,6 +9,7 @@ from itertools import chain
 from typing import List, Tuple, Iterable, Set, Any, Optional
 
 from django.db.models import Model as DjangoModel, QuerySet as DjangoQuerySet
+from django.utils.timezone import now
 from infi.clickhouse_orm.engines import CollapsingMergeTree
 from infi.clickhouse_orm.models import Model as InfiModel, ModelBase as InfiModelBase
 from statsd.defaults.django import statsd
@@ -290,7 +291,7 @@ class ClickHouseModel(InfiModel, metaclass=ClickHouseModelMeta):
         res = (datetime.datetime.now() - last_sync_time).total_seconds() >= cls.get_sync_delay()
         logger.debug('django-clickhouse: need_sync returned %s for class %s as no last sync found'
                      ' (now: %s, last: %s, delay: %d)'
-                     % (res, cls.__name__, datetime.datetime.now().isoformat(), last_sync_time.isoformat(),
+                     % (res, cls.__name__, now().isoformat(), last_sync_time.isoformat(),
                         cls.get_sync_delay()))
 
         return res
