@@ -4,6 +4,7 @@ This file contains django settings to run tests with runtests.py
 from os import environ
 
 SECRET_KEY = 'fake-key'
+USE_TZ = True
 
 DATABASES = {
     'default': {
