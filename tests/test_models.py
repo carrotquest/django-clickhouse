@@ -40,7 +40,7 @@ class TestOperations(TransactionTestCase):
 
     def test_save(self):
         # INSERT operation
-        instance = self.django_model(created_date=datetime.date.today(), created=datetime.datetime.now(), value=2)
+        instance = self.django_model(created_date=datetime.date.today(), created=now(), value=2)
         instance.save()
         self.assertListEqual([('insert', "%s.%d" % (self.db_alias, instance.pk))],
                              self.storage.get_operations(self.clickhouse_model.get_import_key(), 10))
@@ -52,13 +52,13 @@ class TestOperations(TransactionTestCase):
                              self.storage.get_operations(self.clickhouse_model.get_import_key(), 10))
 
     def test_create(self):
-        instance = self.django_model.objects.create(pk=100555, created_date=datetime.date.today(),
-                                                    created=datetime.datetime.now(), value=2)
+        instance = self.django_model.objects.create(pk=100555, created_date=datetime.date.today(), created=now(),
+                                                    value=2)
         self.assertListEqual([('insert', "%s.%d" % (self.db_alias, instance.pk))],
                              self.storage.get_operations(self.clickhouse_model.get_import_key(), 10))
 
     def test_bulk_create(self):
-        items = [self.django_model(created_date=datetime.date.today(), created=datetime.datetime.now(), value=i)
+        items = [self.django_model(created_date=datetime.date.today(), created=now(), value=i)
                  for i in range(5)]
         items = self.django_model.objects.bulk_create(items)
         self.assertEqual(5, len(items))
@@ -187,7 +187,7 @@ class TestOperations(TransactionTestCase):
 
     def test_get_or_create(self):
         instance, created = self.django_model.objects. \
-            get_or_create(pk=100, defaults={'created_date': datetime.date.today(), 'created': datetime.datetime.now(),
+            get_or_create(pk=100, defaults={'created_date': datetime.date.today(), 'created': now(),
                                             'value': 2})
 
         self.assertTrue(created)
@@ -203,8 +203,7 @@ class TestOperations(TransactionTestCase):
 
     def test_update_or_create(self):
         instance, created = self.django_model.objects. \
-            update_or_create(pk=100, defaults={'created_date': datetime.date.today(),
-                                               'created': datetime.datetime.now(), 'value': 2})
+            update_or_create(pk=100, defaults={'created_date': datetime.date.today(), 'created': now(), 'value': 2})
         self.assertTrue(created)
         self.assertListEqual([('insert', "%s.%d" % (self.db_alias, instance.pk))],
                              self.storage.get_operations(self.clickhouse_model.get_import_key(), 10))
@@ -229,7 +228,7 @@ class TestOperations(TransactionTestCase):
 
     def test_bulk_create_returning(self):
         items = [
-            self.django_model(created_date=datetime.date.today(), created=datetime.datetime.now(), value=i)
+            self.django_model(created_date=datetime.date.today(), created=now(), value=i)
             for i in range(5)
         ]
         items = self.django_model.objects.bulk_create_returning(items)
@@ -260,7 +259,7 @@ class TestOperations(TransactionTestCase):
 
     def test_save_returning(self):
         # INSERT operation
-        instance = self.django_model(created_date=datetime.date.today(), created=datetime.datetime.now(), value=2)
+        instance = self.django_model(created_date=datetime.date.today(), created=now(), value=2)
         instance.save_returning()
         self.assertListEqual([('insert', "%s.%d" % (self.db_alias, instance.pk))],
                              self.storage.get_operations(self.clickhouse_model.get_import_key(), 10))
@@ -284,6 +283,7 @@ class TestOperations(TransactionTestCase):
 
 
 class TestSecondaryOperations(TestOperations):
+    # from django.db.models.fields import *
     fixtures = ['test_secondary_model']
     django_model = SecondaryTestModel
     clickhouse_model = ClickHouseSecondTestModel
