@@ -96,6 +96,19 @@ class ClickHouseUser(ClickHouseModel):
     engine = MergeTree('birthday', ('birthday',))
 ```
 
+**Important note**: `clickhouse_model.py` file is not anyhow imported by django initialization code. So if your models are not used anywhere excluding this file, you should import it somewhere in your code if you want synchroniztion working correctly. For instance, you can customise [AppConfig](https://docs.djangoproject.com/en/5.0/ref/applications/#django.apps.AppConfig.ready) like:
+
+```python
+from django.apps import AppConfig
+
+
+class MyAppConfig(AppConfig):
+    name = 'my_app'
+
+    def ready(self):
+        from my_app.clickhouse_models import ClickHouseUser
+```
+
 ## Migration to create table in ClickHouse
 1. Read [migrations](migrations.md) section
 2. Create `clickhouse_migrations` package in your django app
