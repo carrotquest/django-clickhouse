@@ -12,13 +12,14 @@ from typing import Any, Optional, List, Tuple
 
 import os
 
+from celery.utils.nodenames import gethostname
 from django.utils.timezone import now
 from statsd.defaults.django import statsd
 
 from .configuration import config
 from .exceptions import ConfigurationError, RedisLockTimeoutError
 from .redis import redis_zadd
-from .utils import check_pid, get_subclasses, SingletonMeta
+from .utils import check_pid_exists, get_subclasses, SingletonMeta
 
 logger = logging.getLogger('django-clickhouse')
 
@@ -215,19 +216,31 @@ class RedisStorage(Storage, metaclass=SingletonMeta):
         # Block process to be single threaded. Default sync delay is 10 * default sync delay.
         # It can be changed for model, by passing `lock_timeout` argument to pre_sync
         lock = self.get_lock(import_key, **kwargs)
+        current_host_name = gethostname()
         lock_pid_key = self.REDIS_KEY_LOCK_PID.format(import_key=import_key)
         try:
             lock.acquire()
-            self._redis.set(lock_pid_key, os.getpid())
+            self._redis.set(lock_pid_key, '%s:%s' % (current_host_name, os.getpid()))
         except RedisLockTimeoutError:
             statsd.incr('%s.sync.%s.lock.timeout' % (config.STATSD_PREFIX, import_key))
+
             # Lock is busy. But If the process has been killed, I don't want to wait any more.
-            # Let's check if pid exists
-            pid = int(self._redis.get(lock_pid_key) or 0)
-            if pid and not check_pid(pid):
+            # I assume that lock has been killed if it works on the same host (other than localhost)
+            #   and there is no process alive.
+            # I also assume that there are no hosts with same hostname other than localhost.
+            # Note: previously value contained only pid. Let's support old value for back compatibility
+            active_lock_data = self._redis.get(lock_pid_key).split(b":")
+            active_pid = int(active_lock_data[-1] or 0)
+            active_host_name = active_lock_data[0] \
+                if len(active_lock_data) > 1 and active_lock_data[0] != "localhost" else None
+
+            if (
+                active_pid and active_host_name
+                and active_host_name == current_host_name and not check_pid_exists(active_pid)
+            ):
                 statsd.incr('%s.sync.%s.lock.hard_release' % (config.STATSD_PREFIX, import_key))
                 logger.warning('django-clickhouse: hard releasing lock "%s" locked by pid %d (process is dead)'
-                               % (import_key, pid))
+                               % (import_key, active_pid))
                 self._redis.delete(lock_pid_key)
                 lock.hard_release()
                 self.pre_sync(import_key, **kwargs)
