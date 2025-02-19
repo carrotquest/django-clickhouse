@@ -127,7 +127,7 @@ def model_to_dict(instance: DjangoModel, fields:  Optional[Iterable[str]] = None
     return data
 
 
-def check_pid(pid):
+def check_pid_exists(pid):
     """
     Check For the existence of a unix pid.
     """
